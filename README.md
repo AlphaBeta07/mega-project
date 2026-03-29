@@ -1,4 +1,4 @@
-# Notes Pathv
+# AI NOTES GENERATOR
 **Lecture to Notes AI**
 
 Welcome to **Notes Pathv**, an AI-powered educational application built with Streamlit! This application allows you to upload recorded lectures (or record them live) and instantly generates highly structured, premium lecture notes, saving you hours of manual transcription and formatting. It also acts as an educational chatbot, allowing you to ask questions with or without a lecture's context.

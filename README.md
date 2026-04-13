@@ -4,12 +4,12 @@ A AI assistant that converts audio lectures into structured, exam-ready study no
 
 ---
 
-## ⬇️ Download Pre-trained Model Files (Google Drive)
+## Download Pre-trained Model Files (Google Drive)
 
 > **These large files are NOT included in this GitHub repository** due to GitHub's 100MB file size limit.
 > You must download them separately and place them in the correct folders before running the app.
 
-📁 **[Click here to download all model files from Google Drive](https://drive.google.com/drive/folders/1zm-9FvhZLmkV5y2qgzqNP-RqCLe1h8kZ?usp=sharing)**
+**[Click here to download all model files from Google Drive](https://drive.google.com/drive/folders/1zm-9FvhZLmkV5y2qgzqNP-RqCLe1h8kZ?usp=sharing)**
 
 The Google Drive folder contains:
 
@@ -36,7 +36,7 @@ The Google Drive folder contains:
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
 1. [Project Overview](#-project-overview)
 2. [System Requirements](#-system-requirements)
@@ -54,7 +54,7 @@ The Google Drive folder contains:
 
 ---
 
-## 🧠 Project Overview
+## Project Overview
 
 This application is a **two-component system**:
 
@@ -67,7 +67,7 @@ Both components run **100% locally on your NVIDIA RTX 4050 (6GB VRAM)** using sm
 
 ---
 
-## 💻 System Requirements
+## System Requirements
 
 | Item | Minimum | Recommended |
 |------|---------|-------------|
@@ -83,7 +83,7 @@ Both components run **100% locally on your NVIDIA RTX 4050 (6GB VRAM)** using sm
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 d:\mega_project\
@@ -109,7 +109,7 @@ d:\mega_project\
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌──────────────────────────────────────────────────┐
@@ -135,7 +135,7 @@ d:\mega_project\
 
 ---
 
-## ⚙️ Part 1 — Environment Setup
+## Part 1 — Environment Setup
 
 ### 1.1 — Install Python 3.10
 
@@ -177,7 +177,7 @@ Download and install from [lmstudio.ai](https://lmstudio.ai/).
 
 ---
 
-## 📦 Part 2 — Install Dependencies
+## Part 2 — Install Dependencies
 
 ### 2.1 — Create and activate a Virtual Environment
 
@@ -188,7 +188,7 @@ python -m venv venv
 
 ### 2.2 — Install GPU version of PyTorch (CUDA 12.1)
 
-> ⚠️ Do NOT use `pip install torch` alone — that installs the CPU-only version.
+> Do NOT use `pip install torch` alone — that installs the CPU-only version.
 
 ```powershell
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
@@ -225,9 +225,9 @@ pydub
 
 ---
 
-## 🧑‍🔬 Part 3 — Train Your Own Custom Model
+## Part 3 — Train Your Own Custom Model
 
-> ⏱️ Training takes approximately **50–60 minutes** on an RTX 4050.
+> Training takes approximately **50–60 minutes** on an RTX 4050.
 
 ### 3.1 — (Optional) Prepare your own dataset
 
@@ -267,7 +267,7 @@ When complete, your trained brain is saved in the `my_custom_model/` folder as `
 
 ---
 
-## 🔄 Part 4 — Export Model to GGUF (for LM Studio)
+## Part 4 — Export Model to GGUF (for LM Studio)
 
 LM Studio requires models in the `.gguf` format. This script converts your trained weights.
 
@@ -280,13 +280,13 @@ $env:PATH += ";C:\Program Files\CMake\bin;C:\Program Files\OpenSSL-Win64\bin"
 python export_gguf.py
 ```
 
-> ⏱️ This takes approximately **15–20 minutes**.
+> This takes approximately **15–20 minutes**.
 
 ### 4.2 — Expected output
 
 When complete, you will see:
 ```
-🎉 DONE! Look for 'lm_studio_model.Q4_K_M.gguf' in your folder.
+DONE! Look for 'lm_studio_model.Q4_K_M.gguf' in your folder.
 ```
 
 The file will be at:
@@ -294,11 +294,11 @@ The file will be at:
 D:\mega_project\my_custom_model_gguf\my_custom_model.Q4_K_M.gguf
 ```
 
-> ⚠️ **Disk Space Warning**: You need at least **15 GB free** on the drive where your project lives. The export creates a ~7.6 GB temporary file that shrinks to ~2.5 GB after quantization.
+> **Disk Space Warning**: You need at least **15 GB free** on the drive where your project lives. The export creates a ~7.6 GB temporary file that shrinks to ~2.5 GB after quantization.
 
 ---
 
-## 🖥️ Part 5 — Load Model in LM Studio
+## Part 5 — Load Model in LM Studio
 
 ### 5.1 — Add your GGUF to LM Studio
 
@@ -326,11 +326,11 @@ my_custom_model_gguf/MyBrand/EducationalAssistant/my_custom_model.Q4_K_M.gguf
 
 The server will start at: **`http://localhost:1234`**
 
-> ✅ Keep LM Studio running in the background whenever you use the app.
+> Keep LM Studio running in the background whenever you use the app.
 
 ---
 
-## 🚀 Part 6 — Run the Streamlit App
+## Part 6 — Run the Streamlit App
 
 Make sure:
 - [x] LM Studio server is started (Step 5.2)
@@ -346,20 +346,20 @@ Open your browser at: **`http://localhost:8501`**
 
 ---
 
-## 🎓 How to Use the App
+## How to Use the App
 
 ### Upload Audio
-1. Click **"🎵 Upload Audio"** and select an MP3, WAV, or M4A file.
-2. Click **"🚀 Transcribe & Generate Notes"**.
+1. Click **"Upload Audio"** and select an MP3, WAV, or M4A file.
+2. Click **"Transcribe & Generate Notes"**.
 3. The app will:
    - Transcribe the audio using Whisper (on GPU).
    - Send the transcript to your custom model in LM Studio.
    - Display structured notes with Title, Key Points, Explanation, Examples, and Summary.
-4. Click **"⬇️ Download Notes (.md)"** to save your notes.
+4. Click **"Download Notes (.md)"** to save your notes.
 
 ### Record Audio
-1. Click **"🎙️ Record Audio"** → Click to Record → speak → Click to Stop.
-2. Click **"🚀 Transcribe & Generate Notes"**.
+1. Click **"Record Audio"** → Click to Record → speak → Click to Stop.
+2. Click **"Transcribe & Generate Notes"**.
 
 ### Chat with the AI
 - Type any question in the chat box at the bottom.
@@ -367,7 +367,7 @@ Open your browser at: **`http://localhost:8501`**
 
 ---
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 | Error | Cause | Fix |
 |-------|-------|-----|
@@ -383,7 +383,7 @@ Open your browser at: **`http://localhost:8501`**
 
 ---
 
-## 🐛 Known Issues & Fixes
+## Known Issues & Fixes
 
 ### Issue: `winget install Kitware.CMake` fails during GGUF export
 CMake IS installed on your system but not registered in the `PATH` that Python processes see.
@@ -405,6 +405,6 @@ Reduce context length. In `app.py`, lower the value `messages[-10:]` to `message
 
 ---
 
-<!-- ## 📄 License
+<!-- ## License
 
 This project is for personal, educational. Model weights derived from Phi-3 are subject to [Microsoft's Phi-3 license](https://huggingface.co/microsoft/Phi-3-mini-4k-instruct). -->

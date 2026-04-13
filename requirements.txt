@@ -1,0 +1,7 @@
+streamlit
+torch
+torchaudio
+faster-whisper
+openai
+streamlit-audiorecorder
+pydub

@@ -1,10 +1,27 @@
 import streamlit as st
 import tempfile
 import os
+import re
 import torch
 from faster_whisper import WhisperModel
 from openai import OpenAI
 from audiorecorder import audiorecorder
+import yt_dlp
+from pydub import AudioSegment
+
+# ==========================================
+# FFMPEG PATH — set explicitly so pydub & yt-dlp always find it
+# ==========================================
+FFMPEG_BIN = r"C:\Users\Anish\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1-full_build\bin"
+FFMPEG_EXE = os.path.join(FFMPEG_BIN, "ffmpeg.exe")
+
+# Tell pydub where ffmpeg lives
+AudioSegment.converter  = FFMPEG_EXE
+AudioSegment.ffmpeg     = FFMPEG_EXE
+AudioSegment.ffprobe    = os.path.join(FFMPEG_BIN, "ffprobe.exe")
+
+# Add ffmpeg to PATH so yt-dlp subprocess can find it too
+os.environ["PATH"] = FFMPEG_BIN + os.pathsep + os.environ.get("PATH", "")
 
 # ==========================================
 # PAGE CONFIGURATION
@@ -90,6 +107,33 @@ def load_stt_model():
 # ==========================================
 # CORE FUNCTIONS
 # ==========================================
+def is_youtube_url(text: str) -> bool:
+    """Return True if text looks like a YouTube URL."""
+    pattern = r"(https?://)?(www\.)?(youtube\.com/watch\?v=|youtu\.be/)[\w\-]+"
+    return bool(re.search(pattern, text.strip()))
+
+def download_youtube_audio(url: str) -> str:
+    """Download audio from a YouTube URL using yt-dlp and return the file path."""
+    tmp_dir = tempfile.mkdtemp()
+    output_template = os.path.join(tmp_dir, "yt_audio.%(ext)s")
+    ydl_opts = {
+        "format": "bestaudio/best",
+        "outtmpl": output_template,
+        "postprocessors": [{
+            "key": "FFmpegExtractAudio",
+            "preferredcodec": "wav",
+            "preferredquality": "192",
+        }],
+        "ffmpeg_location": FFMPEG_BIN,
+        "quiet": True,
+        "no_warnings": True,
+    }
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=True)
+        title = info.get("title", "YouTube Lecture")
+    wav_path = os.path.join(tmp_dir, "yt_audio.wav")
+    return wav_path, title
+
 def transcribe_audio(file_path: str, stt_model) -> str:
     segments, _ = stt_model.transcribe(file_path, beam_size=5)
     return " ".join(seg.text for seg in segments).strip()
@@ -145,8 +189,10 @@ def chat_with_model(messages: list):
 # SESSION STATE
 # ==========================================
 def init_session_state():
-    if "messages"     not in st.session_state: st.session_state.messages     = []
-    if "latest_notes" not in st.session_state: st.session_state.latest_notes = ""
+    if "messages"        not in st.session_state: st.session_state.messages        = []
+    if "latest_notes"    not in st.session_state: st.session_state.latest_notes    = ""
+    if "yt_audio_path"   not in st.session_state: st.session_state.yt_audio_path   = None
+    if "yt_title"        not in st.session_state: st.session_state.yt_title        = ""
 
 # ==========================================
 # MAIN APP
@@ -185,7 +231,58 @@ def main():
         st.error("⚠️ LM Studio server is not running. Please start it to use this app.")
         st.stop()
 
+    # ---- YOUTUBE INPUT ----
+    st.markdown("---")
+    st.subheader("📺 YouTube Lecture URL")
+    yt_col, yt_btn_col = st.columns([5, 1])
+    with yt_col:
+        yt_url = st.text_input(
+            "Paste a YouTube URL",
+            placeholder="https://www.youtube.com/watch?v=...",
+            label_visibility="collapsed",
+            key="yt_url_input"
+        )
+    with yt_btn_col:
+        fetch_yt = st.button("⬇️ Fetch", type="primary", key="fetch_yt_btn")
+
+    if fetch_yt and yt_url:
+        if not is_youtube_url(yt_url):
+            st.error("❌ That doesn't look like a valid YouTube URL. Please try again.")
+        else:
+            with st.spinner("⏳ Downloading audio from YouTube... (this may take a minute)"):
+                try:
+                    wav_path, vid_title = download_youtube_audio(yt_url)
+                    st.session_state.yt_audio_path = wav_path
+                    st.session_state.yt_title = vid_title
+                    st.success(f"✅ Downloaded: **{vid_title}**")
+                except Exception as e:
+                    st.error(f"❌ Failed to download video: {e}")
+                    st.session_state.yt_audio_path = None
+
+    if st.session_state.yt_audio_path and os.path.exists(st.session_state.yt_audio_path):
+        yt_process = st.button("🚀 Transcribe & Generate Notes from YouTube", type="primary", key="yt_process_btn")
+        if yt_process:
+            with st.spinner("Transcribing YouTube audio with Whisper..."):
+                transcript = transcribe_audio(st.session_state.yt_audio_path, stt_model)
+            try:
+                os.remove(st.session_state.yt_audio_path)
+                st.session_state.yt_audio_path = None
+            except Exception:
+                pass
+
+            with st.expander(f"📝 Raw Transcript — {st.session_state.yt_title}", expanded=False):
+                st.write(transcript)
+
+            if transcript.strip():
+                with st.chat_message("assistant"):
+                    with st.spinner("Generating notes..."):
+                        notes = st.write_stream(generate_notes(transcript))
+                st.session_state.latest_notes = notes
+                st.session_state.messages.append({"role": "user",     "content": f"[YouTube: {st.session_state.yt_title}] {transcript[:200]}..."})
+                st.session_state.messages.append({"role": "assistant", "content": notes})
+
     # ---- AUDIO INPUT ----
+    st.markdown("---")
     col1, col2 = st.columns(2)
     audio_path = None
 

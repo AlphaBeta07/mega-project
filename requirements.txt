@@ -5,3 +5,4 @@ faster-whisper
 openai
 streamlit-audiorecorder
 pydub
+yt_dlp

@@ -1,8 +1,10 @@
-streamlit
+fastapi
+uvicorn
+python-multipart
+pydantic
 torch
-torchaudio
 faster-whisper
 openai
-streamlit-audiorecorder
+yt-dlp
 pydub
-yt_dlp
+PyPDF2

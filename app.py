@@ -27,7 +27,7 @@ os.environ["PATH"] = FFMPEG_BIN + os.pathsep + os.environ.get("PATH", "")
 # PAGE CONFIGURATION
 # ==========================================
 st.set_page_config(
-    page_title="AI Educational Assistant",
+    page_title="StudySnap AI",
     # page_icon="🧠",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -71,17 +71,11 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ==========================================
-# CONSTANTS
-# ==========================================
 STT_MODEL_SIZE  = "small"
 LM_STUDIO_URL   = "http://localhost:1234/v1"
 LM_STUDIO_KEY   = "lm-studio"          # LM Studio ignores this but the library needs it
 LM_MODEL_NAME   = "local-model"        # LM Studio routes this to whatever model is loaded
 
-# ==========================================
-# LM STUDIO CLIENT (lightweight — no VRAM)
-# ==========================================
 @st.cache_resource(show_spinner=False)
 def get_lm_client():
     return OpenAI(base_url=LM_STUDIO_URL, api_key=LM_STUDIO_KEY)
@@ -95,18 +89,12 @@ def lm_studio_online() -> bool:
     except Exception:
         return False
 
-# ==========================================
-# FASTER-WHISPER STT MODEL (GPU, fp16)
-# ==========================================
 @st.cache_resource(show_spinner=False)
 def load_stt_model():
     device       = "cuda" if torch.cuda.is_available() else "cpu"
     compute_type = "float16" if device == "cuda" else "int8"
     return WhisperModel(STT_MODEL_SIZE, device=device, compute_type=compute_type)
 
-# ==========================================
-# CORE FUNCTIONS
-# ==========================================
 def is_youtube_url(text: str) -> bool:
     """Return True if text looks like a YouTube URL."""
     pattern = r"(https?://)?(www\.)?(youtube\.com/watch\?v=|youtu\.be/)[\w\-]+"
@@ -185,18 +173,153 @@ def chat_with_model(messages: list):
         if delta:
             yield delta
 
-# ==========================================
-# SESSION STATE
-# ==========================================
+def extract_text_from_file(file_obj) -> str:
+    name = file_obj.name.lower()
+    if name.endswith(".pdf"):
+        import PyPDF2
+        reader = PyPDF2.PdfReader(file_obj)
+        text = ""
+        for page in reader.pages:
+            page_text = page.extract_text()
+            if page_text:
+                text += page_text + "\n"
+        return text
+    else:
+        return file_obj.getvalue().decode("utf-8", errors="replace")
+
+def chat_with_notebook(messages: list, context: str):
+    client = get_lm_client()
+    system_msg = {
+        "role": "system", 
+        "content": (
+            "You are an expert NotebookLM-style assistant. "
+            "Use the provided context to answer the user's questions accurately and concisely. "
+            "If the answer isn't in the context, clearly state that you don't know based on the sources.\n\n"
+            f"=== SOURCES ===\n{context[:6000]}\n==============="
+        )
+    }
+    stream = client.chat.completions.create(
+        model=LM_MODEL_NAME,
+        messages=[system_msg] + messages[-10:],
+        temperature=0.7,
+        max_tokens=1024,
+        stream=True,
+    )
+    for chunk in stream:
+        delta = chunk.choices[0].delta.content
+        if delta:
+            yield delta
+
+def generate_study_guide(context: str):
+    client = get_lm_client()
+    prompt = f"""Based on the following source material, generate a comprehensive study guide. Include:
+1. Executive Summary
+2. Key Concepts & Definitions
+3. FAQ (Frequently Asked Questions)
+
+Source Material:
+{context[:6000]}"""
+    stream = client.chat.completions.create(
+        model=LM_MODEL_NAME,
+        messages=[
+            {"role": "system", "content": "You are an expert educational AI."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.5,
+        max_tokens=2048,
+        stream=True,
+    )
+    for chunk in stream:
+        delta = chunk.choices[0].delta.content
+        if delta:
+            yield delta
+
+def generate_podcast_script(context: str):
+    client = get_lm_client()
+    prompt = f"""Based on the following source material, generate an engaging 2-person podcast script (Deep Dive style) between 'Host 1' and 'Host 2'. 
+Discuss the key ideas naturally, make it conversational, engaging, and easy to understand. Keep it around 500-800 words.
+
+Source Material:
+{context[:6000]}
+
+Podcast Script:"""
+    stream = client.chat.completions.create(
+        model=LM_MODEL_NAME,
+        messages=[
+            {"role": "system", "content": "You are an expert podcast producer and scriptwriter."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.8,
+        max_tokens=2048,
+        stream=True,
+    )
+    for chunk in stream:
+        delta = chunk.choices[0].delta.content
+        if delta:
+            yield delta
+
 def init_session_state():
     if "messages"        not in st.session_state: st.session_state.messages        = []
     if "latest_notes"    not in st.session_state: st.session_state.latest_notes    = ""
     if "yt_audio_path"   not in st.session_state: st.session_state.yt_audio_path   = None
     if "yt_title"        not in st.session_state: st.session_state.yt_title        = ""
+    if "notebook_docs"   not in st.session_state: st.session_state.notebook_docs   = {}
+    if "notebook_chat"   not in st.session_state: st.session_state.notebook_chat   = []
+    if "notebook_summary" not in st.session_state: st.session_state.notebook_summary = ""
 
-# ==========================================
-# MAIN APP
-# ==========================================
+
+def notebook_mode():
+    st.header("📓 Notebook Mode (NotebookLM)")
+    st.markdown("Upload documents (PDF, TXT, MD) and interact with them using your local model.")
+    
+    uploaded_docs = st.file_uploader("Upload Sources", type=["pdf", "txt", "md", "csv"], accept_multiple_files=True)
+    if st.button("Load Documents", type="primary"):
+        for doc in uploaded_docs:
+            text = extract_text_from_file(doc)
+            st.session_state.notebook_docs[doc.name] = text
+        st.success(f"Loaded {len(uploaded_docs)} documents!")
+        
+    if st.session_state.notebook_docs:
+        st.markdown("### 📚 Your Sources")
+        for name in st.session_state.notebook_docs.keys():
+            st.markdown(f"- 📄 {name}")
+            
+        combined_context = "\n\n".join(st.session_state.notebook_docs.values())
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("📖 Generate Study Guide & FAQ", use_container_width=True):
+                with st.spinner("Generating Study Guide..."):
+                    guide = st.write_stream(generate_study_guide(combined_context))
+                    st.session_state.notebook_summary = guide
+        with col2:
+            if st.button("🎧 Generate Podcast Script", use_container_width=True):
+                with st.spinner("Generating Podcast..."):
+                    script = st.write_stream(generate_podcast_script(combined_context))
+                    st.session_state.notebook_summary = script
+                    
+        if st.session_state.notebook_summary:
+            with st.expander("📝 Generated Content", expanded=True):
+                st.markdown(st.session_state.notebook_summary)
+                
+        st.markdown("---")
+        st.subheader("💬 Chat with your Sources")
+        
+        for msg in st.session_state.notebook_chat:
+            with st.chat_message(msg["role"]):
+                st.markdown(msg["content"])
+        
+        user_input = st.chat_input("Ask a question about your documents...")
+        if user_input:
+            with st.chat_message("user"):
+                st.markdown(user_input)
+            st.session_state.notebook_chat.append({"role": "user", "content": user_input})
+            
+            with st.chat_message("assistant"):
+                reply = st.write_stream(chat_with_notebook(st.session_state.notebook_chat, combined_context))
+            st.session_state.notebook_chat.append({"role": "assistant", "content": reply})
+            st.rerun()
+
 def main():
     init_session_state()
 
@@ -230,6 +353,12 @@ def main():
     if not lm_studio_online():
         st.error("⚠️ LM Studio server is not running. Please start it to use this app.")
         st.stop()
+
+    mode = st.sidebar.radio("Navigation", ["🎙️ Lecture Mode", "📓 Notebook Mode"])
+    if mode == "📓 Notebook Mode":
+        notebook_mode()
+        return
+
 
     # ---- YOUTUBE INPUT ----
     st.markdown("---")
@@ -281,7 +410,6 @@ def main():
                 st.session_state.messages.append({"role": "user",     "content": f"[YouTube: {st.session_state.yt_title}] {transcript[:200]}..."})
                 st.session_state.messages.append({"role": "assistant", "content": notes})
 
-    # ---- AUDIO INPUT ----
     st.markdown("---")
     col1, col2 = st.columns(2)
     audio_path = None
@@ -305,7 +433,6 @@ def main():
                 recording.export(tmp.name, format="wav")
                 audio_path = tmp.name
 
-    # ---- PROCESS BUTTON ----
     if audio_path and st.button("🚀 Transcribe & Generate Notes", type="primary"):
         with st.spinner("Transcribing audio with Whisper..."):
             transcript = transcribe_audio(audio_path, stt_model)
@@ -326,7 +453,6 @@ def main():
             st.session_state.messages.append({"role": "user",      "content": f"[Audio Transcript]: {transcript[:200]}..."})
             st.session_state.messages.append({"role": "assistant",  "content": notes})
 
-    # ---- NOTES OUTPUT ----
     if st.session_state.latest_notes:
         st.markdown("---")
         st.header("✨ Generated Notes")
@@ -343,20 +469,16 @@ def main():
     st.subheader("💬 Chat with your Model")
     st.caption("Ask questions about your notes or any educational topic.")
 
-    # Render each message using Streamlit's native chat_message component
-    # This correctly renders markdown: headings, bullet lists, bold, code, etc.
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
     user_input = st.chat_input("Ask a question...")
     if user_input:
-        # Show user message immediately
         with st.chat_message("user"):
             st.markdown(user_input)
         st.session_state.messages.append({"role": "user", "content": user_input})
 
-        # Stream assistant reply token-by-token → typing effect
         with st.chat_message("assistant"):
             reply = st.write_stream(chat_with_model(st.session_state.messages))
         st.session_state.messages.append({"role": "assistant", "content": reply})

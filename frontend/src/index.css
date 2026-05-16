@@ -26,6 +26,26 @@
   padding: 0;
 }
 
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3c3e40;
+  border-radius: 10px;
+  border: 2px solid var(--bg-panel); /* Creates padding effect around the thumb */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4a4d50;
+}
+
 body {
   font-family: var(--font-main);
   background-color: var(--bg-main);

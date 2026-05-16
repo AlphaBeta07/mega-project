@@ -187,9 +187,9 @@ export default function AddSourceModal({ isOpen, onClose, onUploadSuccess, backe
               </>
             ) : (
               <div className="url-input-container">
-                <div className="url-icon-wrapper">
-                  <Link2 size={20} />
-                  <PlaySquare size={20} color="#ff0000" style={{marginLeft: '-10px'}} />
+                <div className="url-icon-wrapper" style={{ display: 'flex', gap: '12px', justifyContent: 'center', alignItems: 'center' }}>
+                  <Link2 size={24} />
+                  <PlaySquare size={24} color="#ff0000" />
                 </div>
                 <h3>Add a Web Link or YouTube Video</h3>
                 <p>Paste a URL to automatically extract its text content or transcript.</p>

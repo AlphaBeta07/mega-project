@@ -8,14 +8,13 @@ A AI assistant that converts audio lectures into structured, exam-ready study no
 
 > **These large files are NOT included in this GitHub repository** due to GitHub's 100MB file size limit.
 > You must download them separately and place them in the correct folders before running the app.
-   
+
 **[Download Model File (Direct Link)](https://drive.google.com/file/d/1HlEOmOCq-UB1i0RmxpmreoTfT_tgTr51/view?usp=sharing)**
 
 The Google Drive folder contains:
 
 | Folder / File | Size | Purpose |
 |---|---|---|
-| `my_custom_model/` | ~7.6 GB | Fine-tuned model weights (safetensors) — used by `export_gguf.py` |
 | `my_custom_model_gguf/` | ~2.3 GB | Ready-to-use `.gguf` file — load directly into LM Studio |
 | `outputs/` | ~500 MB | Training checkpoints — only needed if you want to resume training |
 | `unsloth_compiled_cache/` | ~50 MB | Compiled Unsloth trainer cache — speeds up re-training |
@@ -26,7 +25,6 @@ The Google Drive folder contains:
 2. Place each folder directly inside your project directory:
    ```
    D:\mega_project\
-   ├── my_custom_model\          ← paste here
    ├── my_custom_model_gguf\     ← paste here
    ├── outputs\                  ← paste here (optional)
    └── unsloth_compiled_cache\   ← paste here (optional)
@@ -93,12 +91,6 @@ d:\mega_project\
 ├── export_gguf.py                  ← Script to convert trained model to .gguf
 ├── requirements.txt                ← Python dependencies
 ├── README.md                       ← This file
-│
-├── my_custom_model/                ← Saved model weights after training (safetensors)
-│   ├── model-00001-of-00002.safetensors
-│   ├── model-00002-of-00002.safetensors
-│   ├── tokenizer.json
-│   └── config.json
 │
 ├── my_custom_model_gguf/           ← GGUF export directory
 │   └── my_custom_model.Q4_K_M.gguf  ← ← ← This file goes into LM Studio

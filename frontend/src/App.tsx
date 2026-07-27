@@ -1,12 +1,15 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import AddSourceModal from './AddSourceModal';
 import AudioOverviewModal from './AudioOverviewModal';
+import InfographicModal from './InfographicModal';
+import MindMapModal from './MindMapModal';
+import MindMapRenderer from './MindMapRenderer';
 import {
-  Share, Settings, Grid, Search, Plus, X,
-  ChevronDown, FileText, FileAudio, FileVideo, FileBarChart,
+  Search, Plus, X,
+  ChevronDown, FileText, FileAudio, FileVideo, FileBarChart, Network,
   BrainCircuit, Layers, MessageSquare, Sparkles,
   ArrowRight, MoreVertical, PanelLeft, PanelRight,
-  Table, Network, PlaySquare, PenTool, Loader2, Globe,
+  Table, PlaySquare, PenTool, Loader2, Globe, TrendingUp, Headphones,
   ChevronRight, Maximize2, Trash2, Undo2, Redo2, Bold, Italic, Link, Code, Image, MoreHorizontal, FilePlus2
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -33,6 +36,22 @@ function App() {
   const [isChatting, setIsChatting] = useState(false);
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
+  const [audioOverviewUrl, setAudioOverviewUrl] = useState<string | null>(null);
+  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
+  const [isInfographicModalOpen, setIsInfographicModalOpen] = useState(false);
+  const [infographicUrl, setInfographicUrl] = useState<string | null>(null);
+  const [isGeneratingInfographic, setIsGeneratingInfographic] = useState(false);
+
+  const [isMindMapModalOpen, setIsMindMapModalOpen] = useState(false);
+  const [mindMapData, setMindMapData] = useState<any>(null);
+  const [isGeneratingMindMap, setIsGeneratingMindMap] = useState(false);
+
+  const [responseLanguage, setResponseLanguage] = useState(() => localStorage.getItem('responseLanguage') || 'English');
+  const [isResponseLangDropdownOpen, setIsResponseLangDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('responseLanguage', responseLanguage);
+  }, [responseLanguage]);
 
   const backendUrl = "http://localhost:8000";
 
@@ -107,7 +126,8 @@ function App() {
         body: JSON.stringify({
           message: userMessage.content,
           history: messages,
-          selected_source_ids: Array.from(selectedSourceIds)
+          selected_source_ids: Array.from(selectedSourceIds),
+          response_language: responseLanguage
         }),
       });
       const data = await res.json();
@@ -140,6 +160,87 @@ function App() {
     }
   };
 
+  const handleGenerateAudioOverview = async () => {
+    setIsGeneratingAudio(true);
+    setAudioOverviewUrl(null);
+    try {
+      const res = await fetch(`${backendUrl}/api/audio-overview`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          selected_source_ids: Array.from(selectedSourceIds),
+          response_language: responseLanguage
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.audio_url) {
+        setAudioOverviewUrl(data.audio_url);
+      }
+    } catch (err) {
+      console.error("Failed to generate audio overview", err);
+      alert("Failed to generate audio overview.");
+    } finally {
+      setIsGeneratingAudio(false);
+    }
+  };
+
+  const handleGenerateInfographic = async (style: string, detailLevel: string, customPrompt: string) => {
+    setIsGeneratingInfographic(true);
+    setInfographicUrl(null);
+    try {
+      const res = await fetch(`${backendUrl}/api/infographic`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          selected_source_ids: Array.from(selectedSourceIds),
+          style,
+          detail_level: detailLevel,
+          custom_prompt: customPrompt,
+          response_language: responseLanguage
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.image_url) {
+        setInfographicUrl(data.image_url);
+      }
+    } catch (err) {
+      console.error("Failed to generate infographic", err);
+      alert("Failed to generate infographic.");
+    } finally {
+      setIsGeneratingInfographic(false);
+    }
+  };
+
+  const handleGenerateMindMap = async (customPrompt: string) => {
+    setIsGeneratingMindMap(true);
+    setMindMapData(null);
+    try {
+      const res = await fetch(`${backendUrl}/api/mindmap`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          selected_source_ids: Array.from(selectedSourceIds),
+          custom_prompt: customPrompt,
+          response_language: responseLanguage
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.mind_map) {
+        setMindMapData(data.mind_map);
+      }
+    } catch (err) {
+      console.error("Failed to generate mind map", err);
+      alert("Failed to generate mind map.");
+    } finally {
+      setIsGeneratingMindMap(false);
+    }
+  };
+
+  const handleNodeClick = (_nodeId: string, label: string, context: string) => {
+    setIsLeftSidebarOpen(true);
+    setInputValue(`Based on this context: "${context}", can you explain the concept of "${label}" in more detail?`);
+  };
+
   const handleStudioAction = (type: string) => {
     let prompt = "";
     switch (type) {
@@ -151,20 +252,27 @@ function App() {
       case 'quiz': prompt = "Generate a multiple-choice quiz to test my comprehension of the source data. Provide 5 questions with 4 options each, and an answer key at the bottom."; break;
       case 'infographic': prompt = "Create a visual summary script incorporating icons, statistics, and graphic layouts based on the sources. Describe the layout, colors, and text for each section of the infographic."; break;
       case 'table': prompt = "Extract and organize key data points from the text into a structured, exportable Markdown table."; break;
+      case 'pyq': prompt = "Analyze the provided previous year question papers. Use mathematical probability and pattern recognition to identify trends, frequency of topics, and weightage. Based on this analysis, predict the most likely questions and high-yield topics for the upcoming exam."; break;
+      case 'audionotes': prompt = "Convert the provided audio transcript into structured educational notes using Markdown. You are an expert educational assistant that creates clear, structured study notes. You MUST include all five sections with these exact headings: # Title, ## Key Points, ## Explanation, ## Examples, ## Summary in detailed."; break;
     }
     if (prompt) {
-      handleSendMessage(prompt);
+      const finalPrompt = responseLanguage !== 'English'
+        ? `${prompt}\n\nIMPORTANT: You MUST write your ENTIRE response in ${responseLanguage}. Translate any generated text, headers, and descriptions into ${responseLanguage}.`
+        : prompt;
+      handleSendMessage(finalPrompt);
     }
   };
 
   return (
     <div className="app-container">
       {/* Header */}
-      <header className="header">
+      <header className="header" style={{ position: 'relative' }}>
         <div className="header-left">
           <div className="logo-container">
             <Layers size={25} fill="currentColor" />
           </div>
+        </div>
+        <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center' }}>
           <span className="notebook-title">StudySnap AI</span>
         </div>
         <div className="header-right">
@@ -178,9 +286,367 @@ function App() {
       {/* Main Content Area */}
       <main className="main-content" style={{ position: 'relative' }}>
 
+        {/* Right Sidebar Mini Rail (when closed) */}
+        {!isRightSidebarOpen && (
+          <aside className="panel sidebar-right-mini" style={{ width: '64px', minWidth: '64px', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px 0', borderRight: '1px solid var(--border-color)', backgroundColor: 'var(--bg-panel)' }}>
+            <button className="icon-btn" onClick={() => setIsRightSidebarOpen(true)} title="Open Studio" style={{ marginBottom: '16px' }}>
+              <PanelRight size={18} />
+            </button>
+            <div style={{ width: '32px', height: '1px', backgroundColor: 'var(--border-color)', marginBottom: '16px', flexShrink: 0 }} />
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto', overflowX: 'hidden', padding: '0 8px', scrollbarWidth: 'none', flex: 1, alignItems: 'center' }}>
+              <button onClick={() => { setIsRightSidebarOpen(true); handleStudioAction('pyq'); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#332b26', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="PYQ Analysis">
+                <TrendingUp size={18} style={{ color: '#ffcc99' }} />
+                <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: '#e3e3e3' }} />
+              </button>
+              <button onClick={() => { setIsRightSidebarOpen(true); setIsAudioModalOpen(true); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#2b2f3a', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Audio Overview">
+                <FileAudio size={18} style={{ color: '#a8c7fa' }} />
+                <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: '#e3e3e3' }} />
+              </button>
+              <button onClick={() => { setIsRightSidebarOpen(true); handleStudioAction('audionotes'); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#2f2b3a', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Audio to Notes">
+                <Headphones size={18} style={{ color: '#c7a8fa' }} />
+                <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: '#e3e3e3' }} />
+              </button>
+              {/* <button onClick={() => { setIsRightSidebarOpen(true); handleStudioAction('slide'); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#353226', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Slide Deck">
+                <PlaySquare size={18} style={{ color: '#d4e6ba' }} />
+                <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: '#e3e3e3' }} />
+              </button> */}
+              <button onClick={() => { setIsRightSidebarOpen(true); handleStudioAction('video'); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#2a332c', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Video Overview">
+                <FileVideo size={18} style={{ color: '#b6e2c3' }} />
+                <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: '#e3e3e3' }} />
+              </button>
+              {/* <button onClick={() => { setIsRightSidebarOpen(true); handleStudioAction('mindmap'); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#352631', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Mind Map">
+                <Network size={18} style={{ color: '#e5b3d6' }} />
+                <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: '#e3e3e3' }} />
+              </button> */}
+              <button onClick={() => { setIsRightSidebarOpen(true); handleStudioAction('reports'); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#353326', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Reports">
+                <FileText size={18} style={{ color: '#dfc98a' }} />
+                <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: '#e3e3e3' }} />
+              </button>
+              <button onClick={() => { setIsRightSidebarOpen(true); handleStudioAction('flashcards'); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#352826', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Flashcards">
+                <BrainCircuit size={18} style={{ color: '#e5b0a3' }} />
+                <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: '#e3e3e3' }} />
+              </button>
+              <button onClick={() => { setIsRightSidebarOpen(true); handleStudioAction('quiz'); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#263336', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Quiz">
+                <MessageSquare size={18} style={{ color: '#a3d8d3' }} />
+                <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: '#e3e3e3' }} />
+              </button>
+              <button onClick={() => { setIsRightSidebarOpen(true); setIsInfographicModalOpen(true); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#302635', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Infographic">
+                <FileBarChart size={18} style={{ color: '#d6b3e5' }} />
+                <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: '#e3e3e3' }} />
+              </button>
+              <button onClick={() => { setIsRightSidebarOpen(true); setIsMindMapModalOpen(true); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#352c26', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Mind Map">
+                <Network size={18} style={{ color: '#e5c9b3' }} />
+                <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: '#e3e3e3' }} />
+              </button>
+              {/* <button onClick={() => { setIsRightSidebarOpen(true); handleStudioAction('table'); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#2c2b36', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Data Table">
+                <Table size={18} style={{ color: '#b3bfe5' }} />
+                <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: '#e3e3e3' }} />
+              </button> */}
+            </div>
+
+            <button onClick={() => { setIsRightSidebarOpen(true); setIsNoteMode(true); }} style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'white', color: 'black', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '16px', flexShrink: 0, boxShadow: '0 4px 12px rgba(0,0,0,0.2)', cursor: 'pointer' }} title="Add Note">
+              <PenTool size={18} />
+              <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: 'black' }} />
+            </button>
+          </aside>
+        )}
+
+        {/* Right Sidebar: Studio / Note */}
+        {isRightSidebarOpen && (
+          <aside className="panel sidebar-right" style={{ display: 'flex', flexDirection: 'column' }}>
+
+            {isNoteMode ? (
+              // NOTE EDITOR VIEW
+              <>
+                <div className="panel-header" style={{ padding: '12px 16px', borderBottom: 'none' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer' }} onClick={() => setIsNoteMode(false)}>
+                    Studio <ChevronRight size={14} style={{ margin: '0 4px' }} /> <span style={{ color: 'var(--text-primary)' }}>Note</span>
+                  </div>
+                  <button className="icon-btn" title="Expand"><Maximize2 size={14} /></button>
+                </div>
+
+                <div style={{ padding: '0 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                  <input
+                    type="text"
+                    value={noteTitle}
+                    onChange={e => setNoteTitle(e.target.value)}
+                    style={{ fontSize: '20px', background: 'transparent', border: 'none', color: 'var(--text-primary)', outline: 'none', width: '100%' }}
+                  />
+                  <button className="icon-btn" onClick={() => { setNoteContent(''); setNoteTitle('New Note'); setIsNoteMode(false); }} title="Delete Note"><Trash2 size={18} /></button>
+                </div>
+
+                <div style={{ padding: '0 16px', display: 'flex', alignItems: 'center', gap: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '12px', color: 'var(--text-secondary)', overflowX: 'auto', flexWrap: 'nowrap', scrollbarWidth: 'none' }}>
+                  <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                    <button className="icon-btn" style={{ padding: '4px' }}><Undo2 size={16} /></button>
+                    <button className="icon-btn" style={{ padding: '4px' }}><Redo2 size={16} /></button>
+                  </div>
+                  <div style={{ width: '1px', height: '16px', background: 'var(--border-color)', flexShrink: 0 }} />
+                  <button style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', flexShrink: 0 }}>
+                    Normal <ChevronDown size={14} />
+                  </button>
+                  <div style={{ width: '1px', height: '16px', background: 'var(--border-color)', flexShrink: 0 }} />
+                  <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                    <button className="icon-btn" style={{ padding: '4px' }}><Bold size={16} /></button>
+                    <button className="icon-btn" style={{ padding: '4px' }}><Italic size={16} /></button>
+                  </div>
+                  <div style={{ width: '1px', height: '16px', background: 'var(--border-color)', flexShrink: 0 }} />
+                  <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                    <button className="icon-btn" style={{ padding: '4px' }}><Link size={16} /></button>
+                    <button className="icon-btn" style={{ padding: '4px' }}><Code size={16} /></button>
+                    <button className="icon-btn" style={{ padding: '4px' }}><Image size={16} /></button>
+                  </div>
+                  <div style={{ width: '1px', height: '16px', background: 'var(--border-color)', flexShrink: 0 }} />
+                  <button className="icon-btn" style={{ padding: '4px', flexShrink: 0 }}><MoreHorizontal size={16} /></button>
+                </div>
+
+                <div style={{ flex: 1, padding: '0 16px', overflowY: 'auto' }}>
+                  <textarea
+                    value={noteContent}
+                    onChange={e => setNoteContent(e.target.value)}
+                    style={{ width: '100%', height: '100%', background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: '15px', resize: 'none', outline: 'none', lineHeight: 1.6 }}
+                  />
+                </div>
+
+                <div style={{ padding: '16px', borderTop: '1px solid var(--border-color)', marginTop: 'auto' }}>
+                  <button style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '24px', color: 'var(--text-primary)', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }} onClick={() => alert('Feature coming soon: Converting note to RAG source document.')}>
+                    <FilePlus2 size={16} /> Convert to source
+                  </button>
+                </div>
+              </>
+            ) : (
+              // STUDIO VIEW
+              <>
+                <div className="panel-header">
+                  <div className="panel-title">Studio</div>
+                  <button className="icon-btn" onClick={() => setIsRightSidebarOpen(false)} title="Close Studio"><PanelRight size={18} /></button>
+                </div>
+
+                <div className="studio-content">
+                  {/* <div className="language-banner">
+                    Create an Audio Overview in: हिन्दी, বাংলা, ગુજરાતી, ಕನ್ನಡ, മലയാളം, മറാഠി, ਪੰਜਾਬੀ, தமிழ், తెలుగు
+                  </div> */}
+
+                  <div className="studio-grid">
+                    <div className="studio-card card-pyq" onClick={() => handleStudioAction('pyq')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><TrendingUp size={18} className="studio-card-icon" style={{ color: '#ffcc99' }} /><span className="studio-card-title">PYQ Analysis</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div>
+                    <div className="studio-card card-audionotes" onClick={() => handleStudioAction('audionotes')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><Headphones size={18} className="studio-card-icon" style={{ color: '#c7a8fa' }} /><span className="studio-card-title">Audio to Notes</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div>
+                    <div className="studio-card card-audio" onClick={() => setIsAudioModalOpen(true)} style={{ cursor: 'pointer' }}>
+                      <div className="studio-card-left">
+                        <FileAudio size={18} className="studio-card-icon" />
+                        <span className="studio-card-title">Audio Overview</span>
+                      </div>
+                      <ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} />
+                    </div>
+                    {/* <div className="studio-card card-slide" onClick={() => handleStudioAction('slide')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><PlaySquare size={18} className="studio-card-icon" style={{ color: '#d4e6ba' }} /><span className="studio-card-title">Slide Deck</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div> */}
+                    <div className="studio-card card-video" onClick={() => handleStudioAction('video')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><FileVideo size={18} className="studio-card-icon" style={{ color: '#b6e2c3' }} /><span className="studio-card-title">Video Overview</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div>
+                    <div className="studio-card card-mindmap" onClick={() => handleStudioAction('mindmap')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><Network size={18} className="studio-card-icon" style={{ color: '#e5b3d6' }} /><span className="studio-card-title">Mind Map</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div>
+                    <div className="studio-card card-reports" onClick={() => handleStudioAction('reports')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><FileText size={18} className="studio-card-icon" style={{ color: '#dfc98a' }} /><span className="studio-card-title">Reports</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div>
+                    <div className="studio-card card-flashcards" onClick={() => handleStudioAction('flashcards')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><BrainCircuit size={18} className="studio-card-icon" style={{ color: '#e5b0a3' }} /><span className="studio-card-title">Flashcards</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div>
+                    <div className="studio-card card-quiz" onClick={() => handleStudioAction('quiz')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><MessageSquare size={18} className="studio-card-icon" style={{ color: '#a3d8d3' }} /><span className="studio-card-title">Quiz</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div>
+                    <div className="studio-card card-infographic" onClick={() => setIsInfographicModalOpen(true)} style={{ cursor: 'pointer' }}><div className="studio-card-left"><FileBarChart size={18} className="studio-card-icon" style={{ color: '#d6b3e5' }} /><span className="studio-card-title">Infographic</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div>
+                    {/* <div className="studio-card card-mindmap" onClick={() => setIsMindMapModalOpen(true)} style={{ cursor: 'pointer' }}><div className="studio-card-left"><Network size={18} className="studio-card-icon" style={{ color: '#e5c9b3' }} /><span className="studio-card-title">Mind Map</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div> */}
+                    {/* <div className="studio-card card-table" onClick={() => handleStudioAction('table')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><Table size={18} className="studio-card-icon" style={{ color: '#b3bfe5' }} /><span className="studio-card-title">Data Table</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div> */}
+                  </div>
+
+                  {sessions.length > 0 && (
+                    <div style={{ marginTop: '24px' }}>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '12px', paddingLeft: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Chat History</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {sessions.map((s) => (
+                          <div
+                            key={s.id}
+                            onClick={() => { handleSwitchSession(s.id); }}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '12px',
+                              padding: '12px 16px',
+                              backgroundColor: currentSessionId === s.id ? '#363636' : '#2b2b2b',
+                              border: currentSessionId === s.id ? '1px solid var(--accent-color)' : '1px solid rgba(255,255,255,0.05)',
+                              borderRadius: '12px',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            <MessageSquare size={16} style={{ color: currentSessionId === s.id ? 'var(--accent-color)' : 'var(--text-secondary)' }} />
+                            <div style={{ flex: 1, overflow: 'hidden' }}>
+                              <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '13px', fontWeight: 500, color: currentSessionId === s.id ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                                {s.title}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {isGeneratingAudio && (
+                    <div style={{ padding: '16px', background: 'var(--bg-button)', borderRadius: '12px', marginTop: '16px', display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--accent-color)' }}>
+                      <Loader2 size={20} className="animate-spin" />
+                      <span style={{ fontSize: '14px', fontWeight: 500 }}>Generating Podcast...</span>
+                    </div>
+                  )}
+                  {audioOverviewUrl && !isGeneratingAudio && (
+                    <div style={{ padding: '16px', background: 'var(--bg-button)', borderRadius: '12px', marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>Your Audio Overview is Ready!</span>
+                      <audio controls src={audioOverviewUrl} style={{ width: '100%', height: '40px', outline: 'none' }} />
+                    </div>
+                  )}
+
+                  {isGeneratingInfographic && (
+                    <div style={{ padding: '16px', background: 'var(--bg-button)', borderRadius: '12px', marginTop: '16px', display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--accent-color)' }}>
+                      <Loader2 size={20} className="animate-spin" />
+                      <span style={{ fontSize: '14px', fontWeight: 500 }}>Generating Infographic...</span>
+                    </div>
+                  )}
+                  {infographicUrl && !isGeneratingInfographic && (
+                    <div style={{ padding: '16px', background: 'var(--bg-button)', borderRadius: '12px', marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>Your Infographic is Ready!</span>
+                        <a href={infographicUrl} download style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'transparent', color: 'var(--accent-color)', fontSize: '12px', textDecoration: 'none' }}>Download</a>
+                      </div>
+                      <img src={infographicUrl} alt="Infographic" style={{ width: '100%', borderRadius: '8px', border: '1px solid var(--border-color)', objectFit: 'contain' }} />
+                    </div>
+                  )}
+
+                  {isGeneratingMindMap && (
+                    <div style={{ padding: '16px', background: 'var(--bg-button)', borderRadius: '12px', marginTop: '16px', display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--accent-color)' }}>
+                      <Loader2 size={20} className="animate-spin" />
+                      <span style={{ fontSize: '14px', fontWeight: 500 }}>Generating Mind Map...</span>
+                    </div>
+                  )}
+                  {mindMapData && !isGeneratingMindMap && (
+                    <div style={{ padding: '8px', background: 'var(--bg-button)', borderRadius: '12px', marginTop: '16px', height: '400px', display: 'flex', flexDirection: 'column' }}>
+                      <MindMapRenderer data={mindMapData} onNodeClick={handleNodeClick} />
+                    </div>
+                  )}
+
+                  {!isGeneratingAudio && !audioOverviewUrl && !isGeneratingInfographic && !infographicUrl && !isGeneratingMindMap && !mindMapData && (
+                    <div className="studio-empty">
+                      <PenTool size={24} />
+                      <div>
+                        <div style={{ fontWeight: 500, color: 'var(--text-primary)', marginBottom: 4 }}>Studio output will be saved here.</div>
+                        <div style={{ fontSize: 13 }}>After adding sources, you can create an Audio Overview, Study Guide, Briefing Doc, and more!</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <button className="btn-add-note" onClick={() => setIsNoteMode(true)}>
+                  <Plus size={18} /> Add note
+                </button>
+              </>
+            )}
+          </aside>
+        )}
+
+        {/* Center Panel: Chat */}
+        <section className="panel chat-center">
+          <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="panel-title">Chat</div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              {messages.length > 0 && (
+                <button
+                  onClick={() => handleSwitchSession('new')}
+                  className="btn-add-source"
+                  style={{ padding: '4px 12px', height: '28px', fontSize: '13px' }}
+                >
+                  <Plus size={14} /> New Chat
+                </button>
+              )}
+              <button className="icon-btn"><MoreVertical size={18} /></button>
+            </div>
+          </div>
+
+          <div className="chat-content" style={{ justifyContent: messages.length > 0 ? 'flex-start' : 'center', overflowY: 'auto', paddingBottom: '100px' }}>
+            {messages.length === 0 ? (
+              <>
+                <div className="welcome-icon">👋</div>
+                <h1 className="welcome-title">Let's start studying...</h1>
+                <p className="welcome-desc">This is your blank canvas to understand, create, or make progress on something new. I can help you get started or you can go ahead and add your own sources.</p>
+                <h2 className="suggestions-title">What would you like this notebook to help you do?</h2>
+                <div className="suggestions-list">
+                  <button className="suggestion-btn" onClick={() => handleSendMessage("Convert the following audio transcript into structured educational notes using Markdown. You are an expert educational assistant that creates clear, structured study notes. You MUST include all five sections with these exact headings: # Title, ## Key Points, ## Explanation, ## Examples, ## Summary in detailed.")}>Audio to notes</button>
+                  <button className="suggestion-btn" onClick={() => handleSendMessage("Convert the content from the provided YouTube link/video into structured educational notes using Markdown. You are an expert educational assistant that creates clear, structured study notes. You MUST include all five sections with these exact headings: # Title, ## Key Points, ## Explanation, ## Examples, ## Summary, in detailed format.")}>YouTube to notes</button>
+                  <button className="suggestion-btn" onClick={() => handleSendMessage("Learn or understand something")}>Learn or understand something</button>
+                </div>
+              </>
+            ) : (
+              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                {messages.map((msg, i) => (
+                  <div key={i} style={{ alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '80%', backgroundColor: msg.role === 'user' ? 'var(--bg-button)' : 'transparent', padding: msg.role === 'user' ? '12px 16px' : '0', borderRadius: '16px', lineHeight: '1.6' }}>
+                    {msg.role === 'assistant' && <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: 'var(--accent-color)' }}><Sparkles size={16} /> <span>StudySnap AI</span></div>}
+                    <div className={msg.role === 'assistant' ? 'markdown-body' : ''}>
+                      {msg.role === 'assistant' ? (
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                      ) : (
+                        msg.content
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {isChatting && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-color)' }}>
+                    <Sparkles size={16} /> <Loader2 size={16} className="animate-spin" /> Thinking...
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="chat-input-container">
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <button
+                className="dropdown-btn"
+                onClick={() => setIsResponseLangDropdownOpen(!isResponseLangDropdownOpen)}
+                style={{ backgroundColor: 'transparent', padding: '6px 12px', borderRadius: '16px', color: 'var(--text-secondary)', border: 'none', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', transition: 'background-color 0.2s', outline: 'none' }}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-button-hover)'}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                aria-label="Select response language"
+              >
+                <Globe size={16} />
+                <span className="lang-text-full">{responseLanguage}</span>
+                <span className="lang-text-short">{responseLanguage.substring(0, 2).toUpperCase()}</span>
+                <ChevronDown size={14} />
+              </button>
+              {isResponseLangDropdownOpen && (
+                <div style={{ position: 'absolute', bottom: '100%', left: 0, marginBottom: '12px', background: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '8px', zIndex: 100, width: '160px', boxShadow: '0 4px 20px rgba(0,0,0,0.5)', maxHeight: '300px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  {["English", "Hinglish", "Manglish", "Hindi", "Marathi"].map(lang => (
+                    <div
+                      key={lang}
+                      onClick={() => { setResponseLanguage(lang); setIsResponseLangDropdownOpen(false); }}
+                      style={{ padding: '8px 12px', fontSize: '14px', cursor: 'pointer', borderRadius: '8px', background: responseLanguage === lang ? 'var(--bg-button)' : 'transparent', color: responseLanguage === lang ? 'var(--text-primary)' : 'var(--text-secondary)', transition: 'all 0.2s' }}
+                      onMouseOver={(e) => { if (responseLanguage !== lang) e.currentTarget.style.background = 'var(--bg-button-hover)' }}
+                      onMouseOut={(e) => e.currentTarget.style.background = responseLanguage === lang ? 'var(--bg-button)' : 'transparent'}
+                    >
+                      {lang}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--border-color)', margin: '0 4px' }}></div>
+
+            <input
+              type="text"
+              className="chat-input"
+              placeholder="Ask a question or create something"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+            />
+            <span className="input-sources-count">{sources.length} sources</span>
+            <button className="btn-send" onClick={() => handleSendMessage()} disabled={isChatting || !inputValue.trim()}>
+              <ArrowRight size={16} />
+            </button>
+          </div>
+          <div className="disclaimer">StudySnap AI can be inaccurate; please double check its responses.</div>
+        </section>
+
         {/* Left Sidebar Mini Rail (when closed) */}
         {!isLeftSidebarOpen && (
-          <aside className="panel sidebar-left-mini" style={{ width: '64px', minWidth: '64px', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px 0', borderRight: '1px solid var(--border-color)', backgroundColor: 'var(--bg-panel)' }}>
+          <aside className="panel sidebar-left-mini" style={{ width: '64px', minWidth: '64px', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px 0', borderLeft: '1px solid var(--border-color)', backgroundColor: 'var(--bg-panel)' }}>
             <button className="icon-btn" onClick={() => setIsLeftSidebarOpen(true)} title="Open Sources" style={{ marginBottom: '16px' }}>
               <PanelLeft size={18} />
             </button>
@@ -322,262 +788,6 @@ function App() {
           </aside>
         )}
 
-        {/* Center Panel: Chat */}
-        <section className="panel chat-center">
-          <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div className="panel-title">Chat</div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              {sessions.length > 0 && (
-                <select
-                  value={currentSessionId || 'new'}
-                  onChange={(e) => handleSwitchSession(e.target.value)}
-                  style={{
-                    backgroundColor: 'var(--bg-button)',
-                    color: 'var(--text-primary)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '8px',
-                    padding: '4px 8px',
-                    fontSize: '13px',
-                    maxWidth: '150px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <option value="new">+ New Chat</option>
-                  {sessions.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
-                </select>
-              )}
-              {messages.length > 0 && (
-                <button
-                  onClick={() => handleSwitchSession('new')}
-                  className="btn-add-source"
-                  style={{ padding: '4px 12px', height: '28px', fontSize: '13px' }}
-                >
-                  <Plus size={14} /> New Chat
-                </button>
-              )}
-              <button className="icon-btn"><MoreVertical size={18} /></button>
-            </div>
-          </div>
-
-          <div className="chat-content" style={{ justifyContent: messages.length > 0 ? 'flex-start' : 'center', overflowY: 'auto', paddingBottom: '100px' }}>
-            {messages.length === 0 ? (
-              <>
-                <div className="welcome-icon">👋</div>
-                <h1 className="welcome-title">Let's start studying...</h1>
-                <p className="welcome-desc">This is your blank canvas to understand, create, or make progress on something new. I can help you get started or you can go ahead and add your own sources.</p>
-                <h2 className="suggestions-title">What would you like this notebook to help you do?</h2>
-                <div className="suggestions-list">
-                  {/* <button className="suggestion-btn" onClick={() => handleSendMessage("Start a project")}>Start a project</button> */}
-                  <button className="suggestion-btn" onClick={() => handleSendMessage("Convert the following audio transcript into structured educational notes using Markdown. You are an expert educational assistant that creates clear, structured study notes. You MUST include all five sections with these exact headings: # Title, ## Key Points, ## Explanation, ## Examples, ## Summary in detailed.")}>Audio to notes</button>
-                  <button className="suggestion-btn" onClick={() => handleSendMessage("Convert the content from the provided YouTube link/video into structured educational notes using Markdown. You are an expert educational assistant that creates clear, structured study notes. You MUST include all five sections with these exact headings: # Title, ## Key Points, ## Explanation, ## Examples, ## Summary, in detailed format.")}>YouTube to notes</button>
-                  <button className="suggestion-btn" onClick={() => handleSendMessage("Learn or understand something")}>Learn or understand something</button>
-                  {/* <button className="suggestion-btn" onClick={() => handleSendMessage("Create a podcast, video, slide deck, etc.")}>Create a podcast, video, slide deck, etc.</button> */}
-                </div>
-              </>
-            ) : (
-              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                {messages.map((msg, i) => (
-                  <div key={i} style={{ alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '80%', backgroundColor: msg.role === 'user' ? 'var(--bg-button)' : 'transparent', padding: msg.role === 'user' ? '12px 16px' : '0', borderRadius: '16px', lineHeight: '1.6' }}>
-                    {msg.role === 'assistant' && <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: 'var(--accent-color)' }}><Sparkles size={16} /> <span>StudySnap AI</span></div>}
-                    <div className={msg.role === 'assistant' ? 'markdown-body' : ''}>
-                      {msg.role === 'assistant' ? (
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
-                      ) : (
-                        msg.content
-                      )}
-                    </div>
-                  </div>
-                ))}
-                {isChatting && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-color)' }}>
-                    <Sparkles size={16} /> <Loader2 size={16} className="animate-spin" /> Thinking...
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="chat-input-container">
-            <input
-              type="text"
-              className="chat-input"
-              placeholder="Ask a question or create something"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-            />
-            <span className="input-sources-count">{sources.length} sources</span>
-            <button className="btn-send" onClick={handleSendMessage} disabled={isChatting || !inputValue.trim()}>
-              <ArrowRight size={16} />
-            </button>
-          </div>
-          <div className="disclaimer">StudySnap AI can be inaccurate; please double check its responses.</div>
-        </section>
-
-        {/* Right Sidebar Mini Rail (when closed) */}
-        {!isRightSidebarOpen && (
-          <aside className="panel sidebar-right-mini" style={{ width: '64px', minWidth: '64px', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px 0', borderLeft: '1px solid var(--border-color)', backgroundColor: 'var(--bg-panel)' }}>
-            <button className="icon-btn" onClick={() => setIsRightSidebarOpen(true)} title="Open Studio" style={{ marginBottom: '16px' }}>
-              <PanelRight size={18} />
-            </button>
-            <div style={{ width: '32px', height: '1px', backgroundColor: 'var(--border-color)', marginBottom: '16px', flexShrink: 0 }} />
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto', overflowX: 'hidden', padding: '0 8px', scrollbarWidth: 'none', flex: 1, alignItems: 'center' }}>
-              <button onClick={() => { setIsRightSidebarOpen(true); setIsAudioModalOpen(true); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#2b2f3a', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Audio Overview">
-                <FileAudio size={18} style={{ color: '#a8c7fa' }} />
-                <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: '#e3e3e3' }} />
-              </button>
-              <button onClick={() => { setIsRightSidebarOpen(true); handleStudioAction('slide'); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#353226', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Slide Deck">
-                <PlaySquare size={18} style={{ color: '#d4e6ba' }} />
-                <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: '#e3e3e3' }} />
-              </button>
-              <button onClick={() => { setIsRightSidebarOpen(true); handleStudioAction('video'); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#2a332c', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Video Overview">
-                <FileVideo size={18} style={{ color: '#b6e2c3' }} />
-                <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: '#e3e3e3' }} />
-              </button>
-              <button onClick={() => { setIsRightSidebarOpen(true); handleStudioAction('mindmap'); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#352631', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Mind Map">
-                <Network size={18} style={{ color: '#e5b3d6' }} />
-                <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: '#e3e3e3' }} />
-              </button>
-              <button onClick={() => { setIsRightSidebarOpen(true); handleStudioAction('reports'); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#353326', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Reports">
-                <FileText size={18} style={{ color: '#dfc98a' }} />
-                <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: '#e3e3e3' }} />
-              </button>
-              <button onClick={() => { setIsRightSidebarOpen(true); handleStudioAction('flashcards'); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#352826', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Flashcards">
-                <BrainCircuit size={18} style={{ color: '#e5b0a3' }} />
-                <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: '#e3e3e3' }} />
-              </button>
-              <button onClick={() => { setIsRightSidebarOpen(true); handleStudioAction('quiz'); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#263336', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Quiz">
-                <MessageSquare size={18} style={{ color: '#a3d8d3' }} />
-                <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: '#e3e3e3' }} />
-              </button>
-              <button onClick={() => { setIsRightSidebarOpen(true); handleStudioAction('infographic'); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#302635', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Infographic">
-                <FileBarChart size={18} style={{ color: '#d6b3e5' }} />
-                <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: '#e3e3e3' }} />
-              </button>
-              <button onClick={() => { setIsRightSidebarOpen(true); handleStudioAction('table'); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#2c2b36', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Data Table">
-                <Table size={18} style={{ color: '#b3bfe5' }} />
-                <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: '#e3e3e3' }} />
-              </button>
-            </div>
-
-            <button onClick={() => { setIsRightSidebarOpen(true); setIsNoteMode(true); }} style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'white', color: 'black', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '16px', flexShrink: 0, boxShadow: '0 4px 12px rgba(0,0,0,0.2)', cursor: 'pointer', position: 'center' }} title="Add Note">
-              <PenTool size={18} />
-              <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: 'black' }} />
-            </button>
-          </aside>
-        )}
-
-        {/* Right Sidebar: Studio / Note */}
-        {isRightSidebarOpen && (
-          <aside className="panel sidebar-right" style={{ display: 'flex', flexDirection: 'column' }}>
-
-            {isNoteMode ? (
-              // NOTE EDITOR VIEW
-              <>
-                <div className="panel-header" style={{ padding: '12px 16px', borderBottom: 'none' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer' }} onClick={() => setIsNoteMode(false)}>
-                    Studio <ChevronRight size={14} style={{ margin: '0 4px' }} /> <span style={{ color: 'var(--text-primary)' }}>Note</span>
-                  </div>
-                  <button className="icon-btn" title="Expand"><Maximize2 size={14} /></button>
-                </div>
-
-                <div style={{ padding: '0 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                  <input
-                    type="text"
-                    value={noteTitle}
-                    onChange={e => setNoteTitle(e.target.value)}
-                    style={{ fontSize: '20px', background: 'transparent', border: 'none', color: 'var(--text-primary)', outline: 'none', width: '100%' }}
-                  />
-                  <button className="icon-btn" onClick={() => { setNoteContent(''); setNoteTitle('New Note'); setIsNoteMode(false); }} title="Delete Note"><Trash2 size={18} /></button>
-                </div>
-
-                <div style={{ padding: '0 16px', display: 'flex', alignItems: 'center', gap: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '12px', color: 'var(--text-secondary)', overflowX: 'auto', flexWrap: 'nowrap', scrollbarWidth: 'none' }}>
-                  <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                    <button className="icon-btn" style={{ padding: '4px' }}><Undo2 size={16} /></button>
-                    <button className="icon-btn" style={{ padding: '4px' }}><Redo2 size={16} /></button>
-                  </div>
-                  <div style={{ width: '1px', height: '16px', background: 'var(--border-color)', flexShrink: 0 }} />
-                  <button style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', flexShrink: 0 }}>
-                    Normal <ChevronDown size={14} />
-                  </button>
-                  <div style={{ width: '1px', height: '16px', background: 'var(--border-color)', flexShrink: 0 }} />
-                  <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                    <button className="icon-btn" style={{ padding: '4px' }}><Bold size={16} /></button>
-                    <button className="icon-btn" style={{ padding: '4px' }}><Italic size={16} /></button>
-                  </div>
-                  <div style={{ width: '1px', height: '16px', background: 'var(--border-color)', flexShrink: 0 }} />
-                  <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                    <button className="icon-btn" style={{ padding: '4px' }}><Link size={16} /></button>
-                    <button className="icon-btn" style={{ padding: '4px' }}><Code size={16} /></button>
-                    <button className="icon-btn" style={{ padding: '4px' }}><Image size={16} /></button>
-                  </div>
-                  <div style={{ width: '1px', height: '16px', background: 'var(--border-color)', flexShrink: 0 }} />
-                  <button className="icon-btn" style={{ padding: '4px', flexShrink: 0 }}><MoreHorizontal size={16} /></button>
-                </div>
-
-                <div style={{ flex: 1, padding: '0 16px', overflowY: 'auto' }}>
-                  <textarea
-                    value={noteContent}
-                    onChange={e => setNoteContent(e.target.value)}
-                    style={{ width: '100%', height: '100%', background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: '15px', resize: 'none', outline: 'none', lineHeight: 1.6 }}
-                  />
-                </div>
-
-                <div style={{ padding: '16px', borderTop: '1px solid var(--border-color)', marginTop: 'auto' }}>
-                  <button style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '24px', color: 'var(--text-primary)', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }} onClick={() => alert('Feature coming soon: Converting note to RAG source document.')}>
-                    <FilePlus2 size={16} /> Convert to source
-                  </button>
-                </div>
-              </>
-            ) : (
-              // STUDIO VIEW
-              <>
-                <div className="panel-header">
-                  <div className="panel-title">Studio</div>
-                  <button className="icon-btn" onClick={() => setIsRightSidebarOpen(false)} title="Close Studio"><PanelRight size={18} /></button>
-                </div>
-
-                <div className="studio-content">
-                  <div className="language-banner">
-                    Create an Audio Overview in: हिन्दी, বাংলা, ગુજરાતી, ಕನ್ನಡ, മലയാളം, മറാഠി, ਪੰਜਾਬੀ, தமிழ், తెలుగు
-                  </div>
-
-                  <div className="studio-grid">
-                    <div className="studio-card card-audio" onClick={() => setIsAudioModalOpen(true)} style={{ cursor: 'pointer' }}>
-                      <div className="studio-card-left">
-                        <FileAudio size={18} className="studio-card-icon" />
-                        <span className="studio-card-title">Audio Overview</span>
-                      </div>
-                      <ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} />
-                    </div>
-                    <div className="studio-card card-slide" onClick={() => handleStudioAction('slide')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><PlaySquare size={18} className="studio-card-icon" style={{ color: '#d4e6ba' }} /><span className="studio-card-title">Slide Deck</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div>
-                    <div className="studio-card card-video" onClick={() => handleStudioAction('video')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><FileVideo size={18} className="studio-card-icon" style={{ color: '#b6e2c3' }} /><span className="studio-card-title">Video Overview</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div>
-                    <div className="studio-card card-mindmap" onClick={() => handleStudioAction('mindmap')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><Network size={18} className="studio-card-icon" style={{ color: '#e5b3d6' }} /><span className="studio-card-title">Mind Map</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div>
-                    <div className="studio-card card-reports" onClick={() => handleStudioAction('reports')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><FileText size={18} className="studio-card-icon" style={{ color: '#dfc98a' }} /><span className="studio-card-title">Reports</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div>
-                    <div className="studio-card card-flashcards" onClick={() => handleStudioAction('flashcards')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><BrainCircuit size={18} className="studio-card-icon" style={{ color: '#e5b0a3' }} /><span className="studio-card-title">Flashcards</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div>
-                    <div className="studio-card card-quiz" onClick={() => handleStudioAction('quiz')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><MessageSquare size={18} className="studio-card-icon" style={{ color: '#a3d8d3' }} /><span className="studio-card-title">Quiz</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div>
-                    <div className="studio-card card-infographic" onClick={() => handleStudioAction('infographic')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><FileBarChart size={18} className="studio-card-icon" style={{ color: '#d6b3e5' }} /><span className="studio-card-title">Infographic</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div>
-                    <div className="studio-card card-table" onClick={() => handleStudioAction('table')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><Table size={18} className="studio-card-icon" style={{ color: '#b3bfe5' }} /><span className="studio-card-title">Data Table</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div>
-                  </div>
-
-                  <div className="studio-empty">
-                    <PenTool size={24} />
-                    <div>
-                      <div style={{ fontWeight: 500, color: 'var(--text-primary)', marginBottom: 4 }}>Studio output will be saved here.</div>
-                      <div style={{ fontSize: 13 }}>After adding sources, you can create an Audio Overview, Study Guide, Briefing Doc, and more!</div>
-                    </div>
-                  </div>
-                </div>
-
-                <button className="btn-add-note" onClick={() => setIsNoteMode(true)}>
-                  <Plus size={18} /> Add note
-                </button>
-              </>
-            )}
-          </aside>
-        )}
-
       </main>
 
       <AddSourceModal
@@ -590,16 +800,21 @@ function App() {
       <AudioOverviewModal
         isOpen={isAudioModalOpen}
         onClose={() => setIsAudioModalOpen(false)}
-        onGenerate={(format, language, length, instructions) => {
-          let prompt = `Create an Audio Overview transcript in ${language}. `;
-          prompt += `Format: ${format.replace('_', ' ')}. `;
-          prompt += `Length: ${length}. `;
-          if (instructions.trim()) {
-            prompt += `Focus on the following instructions: "${instructions}". `;
-          }
-          prompt += `Please output a highly engaging, structured transcript between two hosts discussing the selected sources. Use [Host 1] and [Host 2] tags.`;
-          handleSendMessage(prompt);
+        onGenerate={() => {
+          handleGenerateAudioOverview();
         }}
+      />
+
+      <InfographicModal
+        isOpen={isInfographicModalOpen}
+        onClose={() => setIsInfographicModalOpen(false)}
+        onGenerate={handleGenerateInfographic}
+      />
+
+      <MindMapModal
+        isOpen={isMindMapModalOpen}
+        onClose={() => setIsMindMapModalOpen(false)}
+        onGenerate={handleGenerateMindMap}
       />
     </div>
   );

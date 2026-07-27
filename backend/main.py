@@ -6,7 +6,8 @@ import uvicorn
 import os
 import shutil
 import uuid
-from rag import ingest_document, chat_with_context, get_all_sources, delete_source
+from fastapi.staticfiles import StaticFiles
+from rag import ingest_document, chat_with_context, get_all_sources, delete_source, generate_podcast_script, generate_tts_audio, generate_infographic_image, generate_mind_map_data
 
 app = FastAPI(title="StudySnap AI Backend")
 
@@ -20,11 +21,29 @@ app.add_middleware(
 )
 
 os.makedirs("uploads", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 class ChatRequest(BaseModel):
     message: str
     history: List[dict] = []
     selected_source_ids: Optional[List[str]] = None
+    response_language: Optional[str] = "English"
+
+class AudioOverviewRequest(BaseModel):
+    selected_source_ids: Optional[List[str]] = None
+    response_language: Optional[str] = "English"
+
+class InfographicRequest(BaseModel):
+    selected_source_ids: Optional[List[str]] = None
+    style: str = "Bento Grid"
+    detail_level: str = "Standard"
+    custom_prompt: str = ""
+    response_language: Optional[str] = "English"
+
+class MindMapRequest(BaseModel):
+    selected_source_ids: Optional[List[str]] = None
+    custom_prompt: str = ""
+    response_language: Optional[str] = "English"
 
 class UrlRequest(BaseModel):
     url: str
@@ -89,8 +108,51 @@ async def remove_source(file_id: str):
 async def chat(request: ChatRequest):
     """Chat with the AI using context retrieved from ChromaDB via LM Studio."""
     try:
-        response_text, sources_used = await chat_with_context(request.message, request.history, request.selected_source_ids)
+        response_text, sources_used = await chat_with_context(
+            request.message, 
+            request.history, 
+            request.selected_source_ids,
+            request.response_language
+        )
         return {"response": response_text, "sources": sources_used}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/audio-overview")
+async def create_audio_overview(request: AudioOverviewRequest):
+    """Generate a podcast-style audio overview from selected sources."""
+    try:
+        script_json = await generate_podcast_script(request.selected_source_ids, request.response_language)
+        audio_filename = await generate_tts_audio(script_json)
+        return {"success": True, "audio_url": f"http://localhost:8000/uploads/{audio_filename}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/infographic")
+async def create_infographic(request: InfographicRequest):
+    """Generate an infographic image from selected sources."""
+    try:
+        image_filename = await generate_infographic_image(
+            request.selected_source_ids,
+            request.style,
+            request.detail_level,
+            request.custom_prompt,
+            request.response_language
+        )
+        return {"success": True, "image_url": f"http://localhost:8000/uploads/{image_filename}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/mindmap")
+async def create_mind_map(request: MindMapRequest):
+    """Generate structured JSON Mind Map from selected sources."""
+    try:
+        mind_map_data = await generate_mind_map_data(
+            request.selected_source_ids,
+            request.custom_prompt,
+            request.response_language
+        )
+        return {"success": True, "mind_map": mind_map_data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

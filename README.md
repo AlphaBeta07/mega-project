@@ -8,8 +8,8 @@ A AI assistant that converts audio lectures into structured, exam-ready study no
 
 > **These large files are NOT included in this GitHub repository** due to GitHub's 100MB file size limit.
 > You must download them separately and place them in the correct folders before running the app.
-
-**[Click here to download all model files from Google Drive](https://drive.google.com/drive/folders/1zm-9FvhZLmkV5y2qgzqNP-RqCLe1h8kZ?usp=sharing)**
+   
+**[Download Model File (Direct Link)](https://drive.google.com/file/d/1HlEOmOCq-UB1i0RmxpmreoTfT_tgTr51/view?usp=sharing)**
 
 The Google Drive folder contains:
 

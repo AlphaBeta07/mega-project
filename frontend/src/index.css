@@ -219,8 +219,8 @@ input {
 
 /* Sources Sidebar */
 .sidebar-left {
-  width: 320px;
-  min-width: 320px;
+  width: 345px;
+  min-width: 345px;
 }
 
 .sources-content {
@@ -431,6 +431,26 @@ input {
   color: var(--text-tertiary);
 }
 
+/* Language Selector Responsiveness */
+.lang-text-short {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .lang-text-full {
+    display: none;
+  }
+  .lang-text-short {
+    display: inline;
+  }
+}
+
+@media (max-width: 600px) {
+  .lang-text-full, .lang-text-short {
+    display: none;
+  }
+}
+
 .input-sources-count {
   font-size: 13px;
   color: var(--text-secondary);
@@ -464,8 +484,8 @@ input {
 
 /* Studio Sidebar */
 .sidebar-right {
-  width: 360px;
-  min-width: 360px;
+  width: 385px;
+  min-width: 385px;
   position: relative;
 }
 
@@ -497,7 +517,7 @@ input {
 .studio-card {
   background-color: #2b2b2b;
   border-radius: 12px;
-  padding: 16px;
+  padding: 10px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -513,7 +533,7 @@ input {
 .studio-card-left {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .studio-card-icon {
@@ -540,6 +560,7 @@ input {
 .card-mindmap { background-color: #352631; }
 .card-flashcards { background-color: #352826; }
 .card-infographic { background-color: #302635; }
+.card-pyq { background-color: #332b26; }
 
 .studio-empty {
   margin-top: auto;

@@ -12,3 +12,7 @@ beautifulsoup4==4.14.3
 requests==2.34.2
 youtube-transcript-api==1.2.4
 openai-whisper==20250625
+edge-tts==7.0.0
+pydub==0.25.1
+aiohttp==3.10.11
+

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Activity, Mic2, FileText, CheckCircle2, MessageSquare, ChevronDown } from 'lucide-react';
 
@@ -43,7 +43,6 @@ export default function AudioOverviewModal({ isOpen, onClose, onGenerate }: Audi
             </div>
             <button onClick={onClose} className="icon-btn" style={{ background: 'transparent' }}><X size={20} /></button>
           </div>
-
           <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', maxHeight: '70vh', overflowY: 'auto' }}>
             
             {/* Format Selection */}
@@ -94,6 +93,7 @@ export default function AudioOverviewModal({ isOpen, onClose, onGenerate }: Audi
                     }}
                   >
                     <option>English</option>
+                    <option>Marathi</option>
                     <option>Spanish</option>
                     <option>French</option>
                     <option>German</option>

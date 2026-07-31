@@ -7,7 +7,7 @@ import os
 import shutil
 import uuid
 from fastapi.staticfiles import StaticFiles
-from rag import ingest_document, chat_with_context, get_all_sources, delete_source, generate_podcast_script, generate_tts_audio, generate_infographic_image, generate_mind_map_data
+from rag import ingest_document, chat_with_context, get_all_sources, delete_source, generate_podcast_script, generate_tts_audio, generate_infographic_markdown, generate_mind_map_data, generate_video_overview
 
 app = FastAPI(title="StudySnap AI Backend")
 
@@ -23,6 +23,8 @@ app.add_middleware(
 os.makedirs("uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
+os.makedirs("public/videos", exist_ok=True)
+app.mount("/videos", StaticFiles(directory="public/videos"), name="videos")
 class ChatRequest(BaseModel):
     message: str
     history: List[dict] = []
@@ -41,6 +43,11 @@ class InfographicRequest(BaseModel):
     response_language: Optional[str] = "English"
 
 class MindMapRequest(BaseModel):
+    selected_source_ids: Optional[List[str]] = None
+    custom_prompt: str = ""
+    response_language: Optional[str] = "English"
+
+class VideoOverviewRequest(BaseModel):
     selected_source_ids: Optional[List[str]] = None
     custom_prompt: str = ""
     response_language: Optional[str] = "English"
@@ -130,16 +137,16 @@ async def create_audio_overview(request: AudioOverviewRequest):
 
 @app.post("/api/infographic")
 async def create_infographic(request: InfographicRequest):
-    """Generate an infographic image from selected sources."""
+    """Generate a structured Markdown infographic from selected sources."""
     try:
-        image_filename = await generate_infographic_image(
+        markdown_content = await generate_infographic_markdown(
             request.selected_source_ids,
             request.style,
             request.detail_level,
             request.custom_prompt,
             request.response_language
         )
-        return {"success": True, "image_url": f"http://localhost:8000/uploads/{image_filename}"}
+        return {"success": True, "markdown": markdown_content}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -153,6 +160,19 @@ async def create_mind_map(request: MindMapRequest):
             request.response_language
         )
         return {"success": True, "mind_map": mind_map_data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/video-overview")
+async def create_video_overview(request: VideoOverviewRequest):
+    """Generate a video overview from selected sources."""
+    try:
+        video_url = await generate_video_overview(
+            request.selected_source_ids,
+            request.response_language,
+            request.custom_prompt
+        )
+        return {"success": True, "video_url": video_url}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import AddSourceModal from './AddSourceModal';
 import AudioOverviewModal from './AudioOverviewModal';
+import VideoOverviewModal from './VideoOverviewModal';
 import InfographicModal from './InfographicModal';
 import MindMapModal from './MindMapModal';
 import MindMapRenderer from './MindMapRenderer';
@@ -9,7 +10,7 @@ import {
   ChevronDown, FileText, FileAudio, FileVideo, FileBarChart, Network,
   BrainCircuit, Layers, MessageSquare, Sparkles,
   ArrowRight, MoreVertical, PanelLeft, PanelRight,
-  Table, PlaySquare, PenTool, Loader2, Globe, TrendingUp, Headphones,
+  PenTool, Loader2, Globe, TrendingUp, Headphones,
   ChevronRight, Maximize2, Trash2, Undo2, Redo2, Bold, Italic, Link, Code, Image, MoreHorizontal, FilePlus2
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -38,8 +39,11 @@ function App() {
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
   const [audioOverviewUrl, setAudioOverviewUrl] = useState<string | null>(null);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [videoOverviewUrl, setVideoOverviewUrl] = useState<string | null>(null);
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const [isInfographicModalOpen, setIsInfographicModalOpen] = useState(false);
-  const [infographicUrl, setInfographicUrl] = useState<string | null>(null);
+  const [infographicMarkdown, setInfographicMarkdown] = useState<string | null>(null);
   const [isGeneratingInfographic, setIsGeneratingInfographic] = useState(false);
 
   const [isMindMapModalOpen, setIsMindMapModalOpen] = useState(false);
@@ -184,9 +188,35 @@ function App() {
     }
   };
 
+  const handleGenerateVideoOverview = async (language: string, customPrompt: string) => {
+    setIsGeneratingVideo(true);
+    setVideoOverviewUrl(null);
+    try {
+      const res = await fetch(`${backendUrl}/api/video-overview`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          selected_source_ids: Array.from(selectedSourceIds),
+          response_language: language,
+          custom_prompt: customPrompt
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Server Error");
+      if (data.success && data.video_url) {
+        setVideoOverviewUrl(`${backendUrl}${data.video_url}`);
+      }
+    } catch (err: any) {
+      console.error("Failed to generate video overview", err);
+      alert("Failed to generate video overview: " + (err.message || "Unknown error"));
+    } finally {
+      setIsGeneratingVideo(false);
+    }
+  };
+
   const handleGenerateInfographic = async (style: string, detailLevel: string, customPrompt: string) => {
     setIsGeneratingInfographic(true);
-    setInfographicUrl(null);
+    setInfographicMarkdown(null);
     try {
       const res = await fetch(`${backendUrl}/api/infographic`, {
         method: "POST",
@@ -200,8 +230,8 @@ function App() {
         }),
       });
       const data = await res.json();
-      if (data.success && data.image_url) {
-        setInfographicUrl(data.image_url);
+      if (data.success && data.markdown) {
+        setInfographicMarkdown(data.markdown);
       }
     } catch (err) {
       console.error("Failed to generate infographic", err);
@@ -245,7 +275,6 @@ function App() {
     let prompt = "";
     switch (type) {
       case 'slide': prompt = "Create ready-to-use presentation slides featuring AI-generated layouts and visual descriptions based on the selected sources. Format as 'Slide 1:', 'Visual:', 'Speaker Notes:', etc."; break;
-      case 'video': prompt = "Create a narrated video explainer script complete with voiceover lines and visual slide descriptions based on the selected documents."; break;
       case 'mindmap': prompt = "Create a visual diagram that maps out and connects high-level concepts from the materials. Output a structured Markdown hierarchical list."; break;
       case 'reports': prompt = "Write a structured, written brief and executive summary of the selected content. Include an Executive Summary, Key Findings, and Conclusion."; break;
       case 'flashcards': prompt = "Create digital study flashcards extracting key terms and facts for quick memorization. Format as a Markdown table with 'Term' and 'Definition' columns."; break;
@@ -311,7 +340,7 @@ function App() {
                 <PlaySquare size={18} style={{ color: '#d4e6ba' }} />
                 <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: '#e3e3e3' }} />
               </button> */}
-              <button onClick={() => { setIsRightSidebarOpen(true); handleStudioAction('video'); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#2a332c', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Video Overview">
+              <button onClick={() => { setIsRightSidebarOpen(true); setIsVideoModalOpen(true); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#2a332c', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Video Overview">
                 <FileVideo size={18} style={{ color: '#b6e2c3' }} />
                 <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: '#e3e3e3' }} />
               </button>
@@ -438,7 +467,7 @@ function App() {
                       <ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} />
                     </div>
                     {/* <div className="studio-card card-slide" onClick={() => handleStudioAction('slide')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><PlaySquare size={18} className="studio-card-icon" style={{ color: '#d4e6ba' }} /><span className="studio-card-title">Slide Deck</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div> */}
-                    <div className="studio-card card-video" onClick={() => handleStudioAction('video')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><FileVideo size={18} className="studio-card-icon" style={{ color: '#b6e2c3' }} /><span className="studio-card-title">Video Overview</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div>
+                    <div className="studio-card card-video" onClick={() => setIsVideoModalOpen(true)} style={{ cursor: 'pointer' }}><div className="studio-card-left"><FileVideo size={18} className="studio-card-icon" style={{ color: '#b6e2c3' }} /><span className="studio-card-title">Video Overview</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div>
                     <div className="studio-card card-mindmap" onClick={() => handleStudioAction('mindmap')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><Network size={18} className="studio-card-icon" style={{ color: '#e5b3d6' }} /><span className="studio-card-title">Mind Map</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div>
                     <div className="studio-card card-reports" onClick={() => handleStudioAction('reports')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><FileText size={18} className="studio-card-icon" style={{ color: '#dfc98a' }} /><span className="studio-card-title">Reports</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div>
                     <div className="studio-card card-flashcards" onClick={() => handleStudioAction('flashcards')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><BrainCircuit size={18} className="studio-card-icon" style={{ color: '#e5b0a3' }} /><span className="studio-card-title">Flashcards</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div>
@@ -499,13 +528,16 @@ function App() {
                       <span style={{ fontSize: '14px', fontWeight: 500 }}>Generating Infographic...</span>
                     </div>
                   )}
-                  {infographicUrl && !isGeneratingInfographic && (
+                  {infographicMarkdown && !isGeneratingInfographic && (
                     <div style={{ padding: '16px', background: 'var(--bg-button)', borderRadius: '12px', marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>Your Infographic is Ready!</span>
-                        <a href={infographicUrl} download style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'transparent', color: 'var(--accent-color)', fontSize: '12px', textDecoration: 'none' }}>Download</a>
+                        <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>Your Interactive Infographic is Ready!</span>
                       </div>
-                      <img src={infographicUrl} alt="Infographic" style={{ width: '100%', borderRadius: '8px', border: '1px solid var(--border-color)', objectFit: 'contain' }} />
+                      <div style={{ maxHeight: '400px', overflowY: 'auto', background: 'var(--bg-panel)', padding: '12px', borderRadius: '8px' }} className="markdown-body text-sm">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {infographicMarkdown}
+                        </ReactMarkdown>
+                      </div>
                     </div>
                   )}
 
@@ -521,7 +553,19 @@ function App() {
                     </div>
                   )}
 
-                  {!isGeneratingAudio && !audioOverviewUrl && !isGeneratingInfographic && !infographicUrl && !isGeneratingMindMap && !mindMapData && (
+                  {isGeneratingVideo && (
+                    <div style={{ padding: '16px', background: 'var(--bg-button)', borderRadius: '12px', marginTop: '16px', display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--accent-color)' }}>
+                      <Loader2 size={20} className="animate-spin" />
+                      <span style={{ fontSize: '14px', fontWeight: 500 }}>Generating Video Overview... (this takes a few minutes)</span>
+                    </div>
+                  )}
+                  {videoOverviewUrl && !isGeneratingVideo && (
+                    <div style={{ padding: '8px', background: 'var(--bg-button)', borderRadius: '12px', marginTop: '16px' }}>
+                      <video controls style={{ width: '100%', borderRadius: '8px' }} src={videoOverviewUrl} autoPlay />
+                    </div>
+                  )}
+
+                  {!isGeneratingAudio && !audioOverviewUrl && !isGeneratingInfographic && !infographicMarkdown && !isGeneratingMindMap && !mindMapData && !isGeneratingVideo && !videoOverviewUrl && (
                     <div className="studio-empty">
                       <PenTool size={24} />
                       <div>
@@ -815,6 +859,12 @@ function App() {
         isOpen={isMindMapModalOpen}
         onClose={() => setIsMindMapModalOpen(false)}
         onGenerate={handleGenerateMindMap}
+      />
+
+      <VideoOverviewModal
+        isOpen={isVideoModalOpen}
+        onClose={() => setIsVideoModalOpen(false)}
+        onGenerate={handleGenerateVideoOverview}
       />
     </div>
   );

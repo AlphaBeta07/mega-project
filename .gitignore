@@ -1,18 +1,19 @@
-# Virtual Environment
-venv/
-
-# Model weights — too large for GitHub (hosted on Google Drive)
-my_custom_model/
-my_custom_model_gguf/
-outputs/
-unsloth_compiled_cache/
-*.gguf
-*.safetensors
-*.bin
-*.pt
-*.pth
-
-# Python cache
+# Python
 __pycache__/
 *.py[cod]
-*.pyo
+*$py.class
+*.so
+
+# Virtual Environment
+venv/
+.venv/
+env/
+
+# Testing
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Django / FastAPI
+.venv_django/
+

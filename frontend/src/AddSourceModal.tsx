@@ -26,7 +26,9 @@ const ACCEPTED_FORMATS = {
   'application/xml': ['.xml'],
   'audio/mpeg': ['.mp3'],
   'audio/wav': ['.wav'],
-  'audio/x-m4a': ['.m4a']
+  'audio/x-m4a': ['.m4a'],
+  'audio/ogg': ['.ogg', '.opus'],
+  'audio/aac': ['.aac']
 };
 
 export default function AddSourceModal({ isOpen, onClose, onUploadSuccess, backendUrl }: AddSourceModalProps) {
@@ -52,7 +54,7 @@ export default function AddSourceModal({ isOpen, onClose, onUploadSuccess, backe
 
   const getFileIcon = (filename: string) => {
     const ext = filename.split('.').pop()?.toLowerCase();
-    if (['mp3', 'wav', 'm4a'].includes(ext || '')) return <FileAudio size={20} className="text-blue-400" />;
+    if (['mp3', 'wav', 'm4a', 'ogg', 'opus', 'aac'].includes(ext || '')) return <FileAudio size={20} className="text-blue-400" />;
     if (['mp4', 'mov'].includes(ext || '')) return <FileVideo size={20} className="text-purple-400" />;
     if (['csv', 'xlsx'].includes(ext || '')) return <FileSpreadsheet size={20} className="text-green-400" />;
     return <FileText size={20} className="text-gray-400" />;

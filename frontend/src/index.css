@@ -1,24 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
-
-:root {
-  --bg-main: #131314;
-  --bg-panel: #1e1f20;
-  --bg-panel-hover: #2b2d31;
-  --bg-button: #282a2c;
-  --bg-button-hover: #3d3e40;
-  --bg-input: #1e1f20;
-  --text-primary: #e3e3e3;
-  --text-secondary: #c4c7c5;
-  --text-tertiary: #8e918f;
-  --accent-color: #a8c7fa;
-  --border-color: #333537;
-  --border-light: rgba(255, 255, 255, 0.1);
-  --font-main: 'Inter', system-ui, sans-serif;
-  
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 24px;
-}
+/* ─────────────────────────────────────────────────────────
+   Design tokens — all CSS custom properties live in tokens.css.
+   The legacy aliases (--bg-main, --accent-color, etc.) are
+   preserved there so ALL existing var() references below keep
+   working without any changes.
+   ───────────────────────────────────────────────────────── */
+@import './tokens.css';
+@import './layout/shell.css';
 
 * {
   box-sizing: border-box;
@@ -47,25 +34,36 @@
 }
 
 body {
-  font-family: var(--font-main);
-  background-color: var(--bg-main);
-  color: var(--text-primary);
+  /* Body text uses Inter; headings in JSX should use var(--font-display) */
+  font-family: var(--font-body);
+  background-color: var(--color-bg-base);
+  color: var(--color-text-primary);
   height: 100vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  /* Improve text rendering for dense academic content */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 button {
-  font-family: var(--font-main);
+  font-family: var(--font-body);
   cursor: pointer;
   border: none;
   background: none;
   color: inherit;
 }
 
-input {
-  font-family: var(--font-main);
+input, textarea, select {
+  font-family: var(--font-body);
+}
+
+/* Headings: use display face globally */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  letter-spacing: var(--tracking-tight);
 }
 
 .app-container {
@@ -338,7 +336,8 @@ input {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px;
+  padding: 40px 40px 160px 40px;
+  overflow-y: auto;
   text-align: left;
   max-width: 800px;
   margin: 0 auto;
@@ -402,7 +401,7 @@ input {
 
 .chat-input-container {
   position: absolute;
-  bottom: 24px;
+  bottom: 84px;
   left: 50%;
   transform: translateX(-50%);
   width: 90%;
@@ -414,7 +413,8 @@ input {
   display: flex;
   align-items: center;
   gap: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 50;
 }
 
 .chat-input {
@@ -475,11 +475,13 @@ input {
 
 .disclaimer {
   position: absolute;
-  bottom: 8px;
+  bottom: 64px;
   left: 50%;
   transform: translateX(-50%);
   font-size: 11px;
   color: var(--text-tertiary);
+  z-index: 50;
+  white-space: nowrap;
 }
 
 /* Studio Sidebar */
@@ -927,9 +929,9 @@ input {
   padding: 0.2em 0.4em;
   margin: 0;
   font-size: 85%;
-  background-color: var(--bg-button);
+  background-color: var(--color-bg-elevated);
   border-radius: 6px;
-  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+  font-family: var(--font-mono);
 }
 
 .markdown-body pre {

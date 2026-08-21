@@ -1,0 +1,70 @@
+/* BottomNav.css — Floating Capsule Navigation Dock */
+
+.bottom-nav {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 900;
+  pointer-events: none; /* children enable pointer events */
+}
+
+.bottom-nav__inner {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(18, 21, 29, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  padding: 6px 10px;
+  backdrop-filter: blur(16px);
+  box-shadow: 
+    0 12px 36px rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bottom-nav__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 9999px;
+  color: #9CA3AF;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.bottom-nav__item:hover {
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Active tab styling matching screenshot */
+.bottom-nav__item.active {
+  background: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
+  color: #000000;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+}
+
+.bottom-nav__item.active:hover {
+  background: linear-gradient(135deg, #FCD34D 0%, #F59E0B 100%);
+}
+
+.bottom-nav__icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bottom-nav__label {
+  letter-spacing: 0.01em;
+}

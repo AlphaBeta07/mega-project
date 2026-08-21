@@ -1,0 +1,313 @@
+/* ============================================================
+   StudySnap AI — Design Token System
+   ============================================================
+   Audience: Indian college students prepping for exams.
+   Tone: Focused, exam-ready, authoritative — not playful.
+
+   COLOR RATIONALE
+   ───────────────
+   PRIMARY (Oxford Blue family)
+     #0F2240 → #3B7BBB
+     Justification: Oxford Blue is the ink-blue of NCERT textbooks,
+     official exam hall walls, government university portals (NTA,
+     UPSC, JEE). It reads as "official, structured, trustworthy"
+     to Indian exam students. Deliberately avoiding purple (generic
+     SaaS dark-mode) and warm terracotta (consumer lifestyle apps).
+
+   ACCENT (Saffron Amber)
+     #F4A900 (core amber)
+     Justification: Amber/gold is India's cultural color of
+     knowledge and achievement — think gold ink on university
+     certificates, the ochre of diyas during exam season, Saraswati
+     Puja aesthetics. High contrast ratio (~7:1) on dark navy
+     backgrounds. Immediately distinguishable from every other
+     edtech app using blue or green accents. Used only on CTAs,
+     active states, and focus rings — never decoratively.
+
+   NEUTRAL (Cool Blue-Gray)
+     #0B0E17 → #E8ECF4
+     Justification: Slightly blue-tinted grays derived from the
+     primary hue — they feel part of the same visual family
+     (not neutral-warm which would fight the cool primary).
+     Darker stops (#0B0E17, #111622) are used for the app
+     background and panels; lighter stops appear in text.
+
+   STATUS COLORS
+     Success: #16A34A  (confident green — "question solved")
+     Warning: #D97706  (amber-warm, softer than the accent)
+     Error:   #DC2626  (exam-red — failing marks energy)
+     Info:    #2563EB  (secondary blue — informational, not primary)
+   ============================================================ */
+
+:root {
+
+  /* ──────────────────────────────────────────
+     PRIMITIVE: Primary Color Scale (Oxford Blue)
+     ────────────────────────────────────────── */
+  --color-primary-950: #060C1A;
+  --color-primary-900: #0B1426;
+  --color-primary-800: #0F2240;
+  --color-primary-700: #173356;
+  --color-primary-600: #1F4470;
+  --color-primary-500: #2A5A8F;
+  --color-primary-400: #3B7BBB;
+  --color-primary-300: #5E9DD1;
+  --color-primary-200: #90BDE3;
+  --color-primary-100: #C4DDF2;
+  --color-primary-50:  #EBF4FC;
+
+  /* ──────────────────────────────────────────
+     PRIMITIVE: Accent Color Scale (Saffron Amber)
+     ────────────────────────────────────────── */
+  --color-accent-950: #3D2500;
+  --color-accent-900: #6B3F00;
+  --color-accent-800: #8F5400;
+  --color-accent-700: #B36A00;
+  --color-accent-600: #D48300;
+  --color-accent-500: #F4A900;   /* core accent — CTAs & active states */
+  --color-accent-400: #F7BC2E;
+  --color-accent-300: #FACC60;
+  --color-accent-200: #FCDB99;
+  --color-accent-100: #FEEFCC;
+  --color-accent-50:  #FFF8E8;
+
+  /* ──────────────────────────────────────────
+     PRIMITIVE: Neutral Scale (Cool Blue-Gray)
+     Blue-tinted to stay in visual harmony with primary hue.
+     ────────────────────────────────────────── */
+  --color-neutral-950: #0B0E17;
+  --color-neutral-900: #111622;
+  --color-neutral-800: #191E2E;
+  --color-neutral-700: #232A3E;
+  --color-neutral-600: #313A52;
+  --color-neutral-500: #4A556B;
+  --color-neutral-400: #687288;
+  --color-neutral-300: #8E9AB2;
+  --color-neutral-200: #B8C2D6;
+  --color-neutral-100: #DDE3ED;
+  --color-neutral-50:  #F0F3F8;
+
+  /* ──────────────────────────────────────────
+     SEMANTIC: Surfaces
+     ────────────────────────────────────────── */
+  --color-bg-base:      var(--color-neutral-950);
+  --color-bg-surface:   var(--color-neutral-900);
+  --color-bg-elevated:  var(--color-neutral-800);
+  --color-bg-overlay:   var(--color-neutral-700);
+  --color-bg-sunken:    #080B12;
+  --color-bg-input:     var(--color-neutral-900);
+
+  /* ──────────────────────────────────────────
+     SEMANTIC: Text
+     ────────────────────────────────────────── */
+  --color-text-primary:   var(--color-neutral-50);
+  --color-text-secondary: var(--color-neutral-200);
+  --color-text-muted:     var(--color-neutral-400);
+  --color-text-disabled:  var(--color-neutral-600);
+  --color-text-inverse:   var(--color-neutral-950);
+  --color-text-accent:    var(--color-accent-400);
+
+  /* ──────────────────────────────────────────
+     SEMANTIC: Borders
+     ────────────────────────────────────────── */
+  --color-border-subtle:  var(--color-neutral-800);
+  --color-border-default: var(--color-neutral-700);
+  --color-border-strong:  var(--color-neutral-600);
+  --color-border-focus:   var(--color-accent-500);
+  --color-border-accent:  var(--color-accent-600);
+
+  /* ──────────────────────────────────────────
+     SEMANTIC: Interactive
+     ────────────────────────────────────────── */
+  --color-cta-bg:           var(--color-accent-500);
+  --color-cta-bg-hover:     var(--color-accent-400);
+  --color-cta-bg-active:    var(--color-accent-300);
+  --color-cta-text:         var(--color-neutral-950);
+  --color-btn-ghost-bg:         transparent;
+  --color-btn-ghost-bg-hover:   var(--color-neutral-800);
+  --color-btn-ghost-bg-press:   var(--color-neutral-700);
+  --color-nav-active-bg:    rgba(244, 169, 0, 0.10);
+  --color-nav-active-text:  var(--color-accent-400);
+
+  /* ──────────────────────────────────────────
+     SEMANTIC: Status
+     ────────────────────────────────────────── */
+  --color-success:         #16A34A;
+  --color-success-subtle:  rgba(22, 163, 74, 0.12);
+  --color-warning:         #D97706;
+  --color-warning-subtle:  rgba(217, 119, 6, 0.12);
+  --color-error:           #DC2626;
+  --color-error-subtle:    rgba(220, 38, 38, 0.10);
+  --color-info:            #2563EB;
+  --color-info-subtle:     rgba(37, 99, 235, 0.12);
+
+  /* ──────────────────────────────────────────
+     TYPOGRAPHY: Font Families
+     ──────────────────────────────────────────
+     Display: Plus Jakarta Sans — geometric-humanist, serious edtech
+     Body:    Inter — best readability for dense academic notes
+     Mono:    JetBrains Mono — subject codes, timestamps, PYQ tags
+     ────────────────────────────────────────── */
+  --font-display: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  --font-body:    'Inter', system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+
+  /* ──────────────────────────────────────────
+     TYPOGRAPHY: Size Scale (1.25 major-third modular)
+     ────────────────────────────────────────── */
+  --text-2xs:  0.625rem;   /* 10px — micro labels, badges */
+  --text-xs:   0.75rem;    /* 12px — captions, timestamps, subject codes */
+  --text-sm:   0.875rem;   /* 14px — sidebar items, UI labels */
+  --text-base: 1rem;       /* 16px — body, chat messages */
+  --text-md:   1.125rem;   /* 18px — subheadings, card titles */
+  --text-lg:   1.25rem;    /* 20px — section headers */
+  --text-xl:   1.5rem;     /* 24px — page subsection titles */
+  --text-2xl:  1.875rem;   /* 30px — page title, display */
+  --text-3xl:  2.25rem;    /* 36px — hero/display */
+  --text-4xl:  3rem;       /* 48px — marketing hero */
+
+  /* ──────────────────────────────────────────
+     TYPOGRAPHY: Line Heights
+     ────────────────────────────────────────── */
+  --leading-none:    1;
+  --leading-tight:   1.25;
+  --leading-snug:    1.375;
+  --leading-normal:  1.5;
+  --leading-relaxed: 1.625;
+  --leading-loose:   2;
+
+  /* ──────────────────────────────────────────
+     TYPOGRAPHY: Letter Spacing
+     ────────────────────────────────────────── */
+  --tracking-tighter: -0.04em;
+  --tracking-tight:   -0.02em;
+  --tracking-normal:   0em;
+  --tracking-wide:     0.04em;
+  --tracking-wider:    0.08em;
+  --tracking-widest:   0.12em;
+
+  /* ──────────────────────────────────────────
+     TYPOGRAPHY: Font Weights
+     ────────────────────────────────────────── */
+  --font-weight-normal:    400;
+  --font-weight-medium:    500;
+  --font-weight-semibold:  600;
+  --font-weight-bold:      700;
+  --font-weight-extrabold: 800;
+
+  /* ──────────────────────────────────────────
+     SPACING SCALE (4px base)
+     ────────────────────────────────────────── */
+  --space-0:   0;
+  --space-px:  1px;
+  --space-0_5: 0.125rem;
+  --space-1:   0.25rem;
+  --space-1_5: 0.375rem;
+  --space-2:   0.5rem;
+  --space-2_5: 0.625rem;
+  --space-3:   0.75rem;
+  --space-3_5: 0.875rem;
+  --space-4:   1rem;
+  --space-5:   1.25rem;
+  --space-6:   1.5rem;
+  --space-7:   1.75rem;
+  --space-8:   2rem;
+  --space-10:  2.5rem;
+  --space-12:  3rem;
+  --space-14:  3.5rem;
+  --space-16:  4rem;
+  --space-20:  5rem;
+  --space-24:  6rem;
+  --space-32:  8rem;
+
+  /* ──────────────────────────────────────────
+     BORDER RADIUS SCALE
+     ────────────────────────────────────────── */
+  --radius-none:  0;
+  --radius-2xs:   0.125rem;
+  --radius-xs:    0.25rem;
+  --radius-sm:    0.375rem;
+  --radius-md:    0.625rem;
+  --radius-lg:    0.875rem;
+  --radius-xl:    1.25rem;
+  --radius-2xl:   1.75rem;
+  --radius-full:  9999px;
+
+  /* ──────────────────────────────────────────
+     SHADOW SCALE
+     ────────────────────────────────────────── */
+  --shadow-xs:   0 1px 2px rgba(0, 0, 0, 0.50);
+  --shadow-sm:   0 1px 3px rgba(0, 0, 0, 0.50), 0 1px 2px rgba(0, 0, 0, 0.40);
+  --shadow-md:   0 4px 6px rgba(0, 0, 0, 0.50), 0 2px 4px rgba(0, 0, 0, 0.35);
+  --shadow-lg:   0 10px 15px rgba(0, 0, 0, 0.50), 0 4px 6px rgba(0, 0, 0, 0.30);
+  --shadow-xl:   0 20px 25px rgba(0, 0, 0, 0.55), 0 10px 10px rgba(0, 0, 0, 0.30);
+  --shadow-2xl:  0 25px 50px rgba(0, 0, 0, 0.65);
+  --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.45);
+
+  --shadow-focus:
+    0 0 0 2px var(--color-bg-base),
+    0 0 0 4px var(--color-accent-500);
+  --shadow-glow-accent:
+    0 0 16px rgba(244, 169, 0, 0.20),
+    0 0 4px  rgba(244, 169, 0, 0.12);
+  --shadow-glow-primary:
+    0 0 12px rgba(26, 58, 92, 0.55);
+  --shadow-card:
+    0 1px 3px rgba(0, 0, 0, 0.45),
+    0 0 0 1px var(--color-border-default);
+
+  /* ──────────────────────────────────────────
+     LAYOUT TOKENS
+     ────────────────────────────────────────── */
+  --container-max:        1400px;
+  --container-content:    860px;
+  --sidebar-left-width:   340px;
+  --sidebar-right-width:  380px;
+  --header-height:        60px;
+  --bottom-nav-height:    60px;  /* bottom bar + its padding-bottom offset */
+
+  /* ──────────────────────────────────────────
+     ANIMATION / MOTION
+     ────────────────────────────────────────── */
+  --duration-instant: 75ms;
+  --duration-fast:    150ms;
+  --duration-base:    250ms;
+  --duration-slow:    400ms;
+  --duration-slower:  600ms;
+  --ease-default: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in:      cubic-bezier(0.4, 0, 1, 1);
+  --ease-out:     cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out:  cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-bounce:  cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ──────────────────────────────────────────
+     Z-INDEX SCALE
+     ────────────────────────────────────────── */
+  --z-base:    0;
+  --z-raised:  10;
+  --z-sticky:  20;
+  --z-overlay: 30;
+  --z-modal:   40;
+  --z-toast:   50;
+  --z-tooltip: 60;
+
+  /* ──────────────────────────────────────────
+     LEGACY ALIAS MAP
+     Maps new token names to the old variable names used throughout
+     App.tsx, index.css, and modal components. Do NOT remove these —
+     they keep all existing JSX and CSS working without any changes.
+     ────────────────────────────────────────── */
+  --bg-main:         var(--color-bg-base);
+  --bg-panel:        var(--color-bg-surface);
+  --bg-panel-hover:  var(--color-bg-elevated);
+  --bg-button:       var(--color-bg-elevated);
+  --bg-button-hover: var(--color-bg-overlay);
+  --bg-input:        var(--color-bg-input);
+  --text-primary:    var(--color-text-primary);
+  --text-secondary:  var(--color-text-secondary);
+  --text-tertiary:   var(--color-text-muted);
+  --accent-color:    var(--color-accent-400);
+  --border-color:    var(--color-border-default);
+  --border-light:    rgba(255, 255, 255, 0.07);
+  --font-main:       var(--font-body);
+}

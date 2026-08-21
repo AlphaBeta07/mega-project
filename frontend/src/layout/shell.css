@@ -1,0 +1,172 @@
+/* ============================================================
+   shell.css — Layout shell styles for StudySnap AI
+   All values use tokens from tokens.css (imported first in index.css).
+   ============================================================ */
+
+/* ── Root shell wrapper ─────────────────────────────────────── */
+.ss-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--color-bg-base);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+}
+
+/* ── Fixed header bar ───────────────────────────────────────── */
+.ss-shell__header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--header-height);
+  z-index: var(--z-sticky);
+  background-color: var(--color-bg-surface);
+  border-bottom: 1px solid var(--color-border-subtle);
+  display: flex;
+  align-items: center;
+
+  /* Subtle backdrop blur for depth without heavy glass effect */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  background-color: rgba(17, 22, 34, 0.88); /* --color-neutral-900 @ 88% */
+}
+
+/* ── Main content area ──────────────────────────────────────── */
+.ss-shell__main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Centered content container ─────────────────────────────── */
+.ss-shell__container {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Scrollable page variant ─────────────────────────────────── */
+.ss-shell__main--scrollable {
+  overflow-y: auto;
+}
+
+/* ── Full-height split layout (sidebars + chat) ─────────────── */
+.ss-layout-split {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  height: 100%;
+}
+
+/* ── Responsive breakpoints ─────────────────────────────────── */
+
+/* ≤ 640px — single column: hide sidebars */
+@media (max-width: 640px) {
+  .ss-sidebar-left,
+  .ss-sidebar-right {
+    display: none;
+  }
+
+  .ss-shell__container {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+}
+
+/* 641px – 1023px — show left sidebar only, collapse right */
+@media (min-width: 641px) and (max-width: 1023px) {
+  .ss-sidebar-right {
+    display: none;
+  }
+
+  .ss-sidebar-left {
+    width: 280px;
+    min-width: 280px;
+  }
+}
+
+/* ≥ 1024px — show both sidebars (full three-column layout) */
+@media (min-width: 1024px) {
+  .ss-sidebar-left {
+    width: var(--sidebar-left-width);
+    min-width: var(--sidebar-left-width);
+  }
+
+  .ss-sidebar-right {
+    width: var(--sidebar-right-width);
+    min-width: var(--sidebar-right-width);
+  }
+}
+
+/* ── Utility: page section container ────────────────────────── */
+.ss-page-section {
+  padding: var(--space-6) var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .ss-page-section {
+    padding: var(--space-8) var(--space-6);
+  }
+}
+
+/* ── Utility: content card ───────────────────────────────────── */
+.ss-card {
+  background-color: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+
+.ss-card:hover {
+  border-color: var(--color-border-strong);
+}
+
+/* ── Utility: focus-visible ring (global) ───────────────────── */
+*:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+/* ── Utility: mono label (subject codes, timestamps, PYQ tags) ─ */
+.ss-mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-text-muted);
+}
+
+/* ── Utility: accent badge ───────────────────────────────────── */
+.ss-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-0_5) var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: var(--text-2xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+  background-color: rgba(244, 169, 0, 0.12);
+  color: var(--color-accent-400);
+  border: 1px solid rgba(244, 169, 0, 0.20);
+}
+
+/* ── Utility: screen reader only ────────────────────────────── */
+.ss-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

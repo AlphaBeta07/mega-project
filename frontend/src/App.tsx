@@ -5,10 +5,17 @@ import VideoOverviewModal from './VideoOverviewModal';
 import InfographicModal from './InfographicModal';
 import MindMapModal from './MindMapModal';
 import MindMapRenderer from './MindMapRenderer';
+import LandingPage from './components/LandingPage';
+import StudentDashboard from './components/StudentDashboard';
+import NoteReaderModal from './components/NoteReaderModal';
+import AuthModal from './components/AuthModal';
+import UserProfileModal from './components/UserProfileModal';
+import BottomNav from './components/BottomNav';
+import type { PublicNote } from './data/mockNotes';
 import {
-  Search, Plus, X,
+  Search, Plus, X, ArrowLeft,
   ChevronDown, FileText, FileAudio, FileVideo, FileBarChart, Network,
-  BrainCircuit, Layers, MessageSquare, Sparkles,
+  BrainCircuit, MessageSquare, Sparkles,
   ArrowRight, MoreVertical, PanelLeft, PanelRight,
   PenTool, Loader2, Globe, TrendingUp, Headphones,
   ChevronRight, Maximize2, Trash2, Undo2, Redo2, Bold, Italic, Link, Code, Image, MoreHorizontal, FilePlus2
@@ -52,6 +59,14 @@ function App() {
 
   const [responseLanguage, setResponseLanguage] = useState(() => localStorage.getItem('responseLanguage') || 'English');
   const [isResponseLangDropdownOpen, setIsResponseLangDropdownOpen] = useState(false);
+
+  // 2-State System & Navigation States
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState<{ name: string; email: string; college: string } | null>({ name: 'Rohan Sharma', email: 'rohan.sharma@iitb.ac.in', college: 'IIT Bombay' });
+  const [activeTab, setActiveTab] = useState<'home' | 'studio' | 'chat'>('home');
+  const [selectedNoteForModal, setSelectedNoteForModal] = useState<PublicNote | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('responseLanguage', responseLanguage);
@@ -294,29 +309,73 @@ function App() {
 
   return (
     <div className="app-container">
-      {/* Header */}
-      <header className="header" style={{ position: 'relative' }}>
-        <div className="header-left">
-          <div className="logo-container">
-            <Layers size={25} fill="currentColor" />
-          </div>
-        </div>
-        <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center' }}>
-          <span className="notebook-title">StudySnap AI</span>
-        </div>
-        <div className="header-right">
-          <button className="btn-create-notebook">
-            <Plus size={16} />
-            Create notebook
-          </button>
-        </div>
-      </header>
-
       {/* Main Content Area */}
-      <main className="main-content" style={{ position: 'relative' }}>
+      <main className="main-content" style={{ position: 'relative', overflowY: activeTab === 'home' ? 'auto' : 'hidden' }}>
+        {activeTab === 'home' ? (
+          !isLoggedIn ? (
+            <LandingPage
+              onCreateNotebook={() => {
+                if (isLoggedIn) {
+                  setActiveTab('studio');
+                  setIsModalOpen(true);
+                } else {
+                  setIsAuthModalOpen(true);
+                }
+              }}
+              onSelectNote={(note) => setSelectedNoteForModal(note)}
+            />
+          ) : (
+            <StudentDashboard
+              user={currentUser}
+              onOpenStudio={() => setActiveTab('studio')}
+              onLogout={() => setIsLoggedIn(false)}
+            />
+          )
+        ) : (
+          <>
+            {/* Top Bar for Studio View */}
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '42px',
+              backgroundColor: 'var(--bg-panel)',
+              borderBottom: '1px solid var(--border-color)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '0 16px',
+              zIndex: 30
+            }}>
+              <button
+                onClick={() => setActiveTab('home')}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  color: '#F3F4F6',
+                  padding: '4px 12px',
+                  borderRadius: '9999px',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <ArrowLeft size={14} />
+                Back to Student Dashboard
+              </button>
 
-        {/* Right Sidebar Mini Rail (when closed) */}
-        {!isRightSidebarOpen && (
+              <div style={{ fontSize: '0.825rem', color: '#F59E0B', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Sparkles size={15} />
+                AI Study Assistant & RAG Chatbot Studio
+              </div>
+            </div>
+
+            {/* Right Sidebar Mini Rail (when closed) */}
+            {!isRightSidebarOpen && (
           <aside className="panel sidebar-right-mini" style={{ width: '64px', minWidth: '64px', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px 0', borderRight: '1px solid var(--border-color)', backgroundColor: 'var(--bg-panel)' }}>
             <button className="icon-btn" onClick={() => setIsRightSidebarOpen(true)} title="Open Studio" style={{ marginBottom: '16px' }}>
               <PanelRight size={18} />
@@ -831,7 +890,8 @@ function App() {
             </div>
           </aside>
         )}
-
+          </>
+        )}
       </main>
 
       <AddSourceModal
@@ -865,6 +925,44 @@ function App() {
         isOpen={isVideoModalOpen}
         onClose={() => setIsVideoModalOpen(false)}
         onGenerate={handleGenerateVideoOverview}
+      />
+
+      <NoteReaderModal
+        note={selectedNoteForModal}
+        onClose={() => setSelectedNoteForModal(null)}
+        onOpenStudio={() => {
+          setSelectedNoteForModal(null);
+          setIsLoggedIn(true);
+          setActiveTab('studio');
+        }}
+      />
+
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onLoginSuccess={(user) => {
+          setCurrentUser(user);
+          setIsLoggedIn(true);
+          setIsAuthModalOpen(false);
+          setActiveTab('home');
+        }}
+      />
+
+      <UserProfileModal
+        isOpen={isProfileModalOpen}
+        user={currentUser}
+        onClose={() => setIsProfileModalOpen(false)}
+        onLogout={() => setIsLoggedIn(false)}
+      />
+
+      <BottomNav
+        activeTab={activeTab}
+        isLoggedIn={isLoggedIn}
+        onTabChange={(tab) => {
+          setActiveTab(tab);
+        }}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
+        onOpenAccount={() => setIsProfileModalOpen(true)}
       />
     </div>
   );

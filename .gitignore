@@ -1,5 +1,11 @@
 # Virtual Environment
 venv/
+backend/venv/
+
+# Local database & uploaded files
+backend/uploads/
+backend/chroma_data/
+*.sqlite3
 
 # Model weights — too large for GitHub (hosted on Google Drive)
 my_custom_model/
@@ -16,3 +22,4 @@ unsloth_compiled_cache/
 __pycache__/
 *.py[cod]
 *.pyo
+

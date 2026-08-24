@@ -8,6 +8,7 @@ load_dotenv()
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 import io
 import requests
+from datetime import datetime
 from bs4 import BeautifulSoup
 from docx import Document
 from pptx import Presentation
@@ -177,9 +178,53 @@ def ingest_document(file_path: str, filename: str, file_id: str):
     metadatas = [{"source": filename, "file_id": file_id} for _ in chunks]
     
     collection.add(documents=chunks, metadatas=metadatas, ids=ids)
-    return {"id": file_id, "filename": filename, "type": filename.split('.')[-1] if '.' in filename and not filename.startswith("http") else "url"}
+
+    doc_meta = {
+        "id": file_id,
+        "filename": filename,
+        "type": filename.split('.')[-1] if '.' in filename and not filename.startswith("http") else "url",
+        "file_path": file_path,
+        "raw_text": text[:5000],  # First 5000 chars preview
+        "chunk_count": len(chunks)
+    }
+
+    # Persist in MongoDB Sync Database
+    try:
+        from database.connection import get_sync_db
+        from database.config import settings
+        sync_db = get_sync_db()
+        sync_db[settings.SOURCES_COLLECTION].replace_one(
+            {"id": file_id},
+            {
+                "id": file_id,
+                "filename": filename,
+                "type": doc_meta["type"],
+                "file_path": file_path,
+                "raw_text": text,
+                "chunk_count": len(chunks),
+                "created_at": datetime.utcnow()
+            },
+            upsert=True
+        )
+    except Exception as e:
+        print(f"MongoDB Source Sync Warning: {e}")
+
+    return doc_meta
 
 def get_all_sources():
+    # Try fetching from MongoDB first for full persistent data
+    try:
+        from database.connection import get_sync_db
+        from database.config import settings
+        sync_db = get_sync_db()
+        cursor = sync_db[settings.SOURCES_COLLECTION].find({}, {"_id": 0, "raw_text": 0})
+        sources = list(cursor)
+        if sources:
+            return sources
+    except Exception as e:
+        print(f"MongoDB Source Fetch Warning: {e}")
+
+    # Fallback to ChromaDB
     results = collection.get(include=["metadatas"])
     metadatas = results.get("metadatas", [])
     unique_sources = {}
@@ -193,8 +238,15 @@ def get_all_sources():
     return list(unique_sources.values())
 
 def delete_source(file_id: str):
-    """Delete a source and all its chunks from ChromaDB."""
+    """Delete a source and all its chunks from ChromaDB and MongoDB."""
     collection.delete(where={"file_id": file_id})
+    try:
+        from database.connection import get_sync_db
+        from database.config import settings
+        sync_db = get_sync_db()
+        sync_db[settings.SOURCES_COLLECTION].delete_one({"id": file_id})
+    except Exception as e:
+        print(f"MongoDB Source Delete Warning: {e}")
 
 async def chat_with_context(query: str, history: list = None, selected_source_ids: list = None, response_language: str = "English"):
     if history is None: history = []

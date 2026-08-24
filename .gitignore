@@ -3,17 +3,40 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.so
+*.pyo
 
 # Virtual Environment
 venv/
 .venv/
 env/
+backend/venv/
+.venv_django/
 
 # Testing
 .pytest_cache/
 htmlcov/
 .coverage
 
-# Django / FastAPI
-.venv_django/
+# Local database & uploaded files
+backend/uploads/
+backend/chroma_data/
+*.sqlite3
+.env
+backend/.env
 
+# Model weights — too large for GitHub (hosted on Google Drive)
+my_custom_model/
+my_custom_model_gguf/
+outputs/
+outputs_7b/
+unsloth_compiled_cache/
+*.gguf
+*.safetensors
+*.bin
+*.pt
+*.pth
+
+# Node / Frontend
+node_modules/
+frontend/node_modules/
+frontend/dist/

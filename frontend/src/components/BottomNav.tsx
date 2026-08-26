@@ -1,11 +1,11 @@
 import React from 'react';
-import { Home, MessageSquare, LogIn, Sparkles, User } from 'lucide-react';
+import { Home, MessageSquare, LogIn, Sparkles, User, Image as ImageIcon } from 'lucide-react';
 import './BottomNav.css';
 
 interface BottomNavProps {
-  activeTab: 'home' | 'studio' | 'chat';
+  activeTab: 'home' | 'studio' | 'chat' | 'infographic';
   isLoggedIn: boolean;
-  onTabChange: (tab: 'home' | 'studio' | 'chat') => void;
+  onTabChange: (tab: 'home' | 'studio' | 'chat' | 'infographic') => void;
   onOpenAuth: () => void;
   onOpenAccount?: () => void;
 }
@@ -43,6 +43,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({
             <span className="bottom-nav__label">Studio</span>
           </button>
         )}
+
+
 
         {/* Chat Tab */}
         <button

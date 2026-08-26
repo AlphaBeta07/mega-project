@@ -1,6 +1,7 @@
 import os
 import json
 import csv
+# pyrefly: ignore [missing-import]
 import google.generativeai as genai
 from dotenv import load_dotenv
 
@@ -10,6 +11,7 @@ import io
 import requests
 from bs4 import BeautifulSoup
 from docx import Document
+from gtts import gTTS
 from pptx import Presentation
 import pandas as pd
 from youtube_transcript_api import YouTubeTranscriptApi
@@ -32,7 +34,7 @@ collection = chroma_client.get_or_create_collection(name="studysnap_collection",
 
 # Initialize LM Studio client
 lm_studio_client = AsyncOpenAI(base_url="http://localhost:1234/v1", api_key="lm-studio")
-MODEL_NAME = "my_custom_200m_model_gguf/AnishLandage/SnapStudyAI"
+MODEL_NAME = "my_custom_model_gguf/Anish/StudySanpAI" # For 8B model use "my_custom_model/Anish/StudySanpAI"
 
 def extract_youtube_transcript(url: str) -> str:
     try:
@@ -284,10 +286,12 @@ async def generate_podcast_script(selected_source_ids: list = None, response_lan
         lang_def = " (a mix of Malayalam and English written in the English alphabet)"
 
     system_prompt = (
-        "You are an expert podcast producer. Create a multi-turn, engaging podcast script between two hosts, "
+        "You are an expert podcast producer. Create a short, engaging podcast script between two hosts, "
         "Host A and Host B, discussing the provided documents. "
         f"IMPORTANT: The hosts MUST speak and banter in {response_language}{lang_def}. Write the actual dialogue in this language.\n"
         "Host A should introduce the topic, and they should have a natural back-and-forth banter. "
+        "CRITICAL CONSTRAINT: Keep the script to exactly 6-8 dialogue turns total. Each turn should be 1-2 concise sentences (max 30 words per turn). "
+        "Be punchy and informative, not verbose. "
         "Return the output STRICTLY as a JSON array of objects, with each object having 'speaker' ('Host A' or 'Host B') "
         "and 'text' (the spoken dialogue). Do not include any other text outside the JSON array.\n\n"
         "Context:\n" + context
@@ -318,54 +322,69 @@ async def generate_podcast_script(selected_source_ids: list = None, response_lan
         return [{"speaker": "Host A", "text": "Welcome to our Audio Overview! We had a small issue generating the script."}, 
                 {"speaker": "Host B", "text": "Yes, unfortunately we couldn't process the documents correctly."}]
 
+async def _synthesize_segment(index: int, text: str, voice: str):
+    """Synthesize a single TTS segment. Returns (index, filepath)."""
+    output_file = f"uploads/temp_{uuid.uuid4()}_{index}.mp3"
+    try:
+        communicate = edge_tts.Communicate(text, voice)
+        await communicate.save(output_file)
+    except Exception as e:
+        print(f"edge-tts failed for segment {index}: {e}. Falling back to gTTS.")
+        tts = gTTS(text=text, lang='en')
+        tts.save(output_file)
+    return index, output_file
+
+
 async def generate_tts_audio(script_json):
-    audio_files = []
-    
     # Define voices
     voices = {
         "Host A": "en-US-ChristopherNeural",
         "Host B": "en-US-AriaNeural"
     }
-    
+
+    # Launch ALL TTS tasks in parallel
+    tasks = []
     for i, line in enumerate(script_json):
         speaker = line.get("speaker", "Host A")
         text = line.get("text", "")
         voice = voices.get(speaker, voices["Host A"])
-        
-        output_file = f"temp_{uuid.uuid4()}_{i}.mp3"
-        try:
-            communicate = edge_tts.Communicate(text, voice)
-            await communicate.save(output_file)
-        except Exception as e:
-            print(f"edge-tts failed: {e}. Falling back to gTTS.")
-            from gtts import gTTS
-            tts = gTTS(text=text, lang='en')
-            tts.save(output_file)
-        audio_files.append(output_file)
-        
+        tasks.append(_synthesize_segment(i, text, voice))
+
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    # Sort by original index to preserve dialogue order
+    ordered_files = [None] * len(script_json)
+    for result in results:
+        if isinstance(result, Exception):
+            print(f"TTS segment failed: {result}")
+            continue
+        idx, filepath = result
+        ordered_files[idx] = filepath
+
     # Merge audio files using pydub
     combined = AudioSegment.empty()
-    for file in audio_files:
+    pause = AudioSegment.silent(duration=300)
+    for file in ordered_files:
+        if file is None:
+            continue
         try:
             segment = AudioSegment.from_mp3(file)
-            combined += segment
-            # Add a small pause between speakers (300ms)
-            combined += AudioSegment.silent(duration=300)
+            combined += segment + pause
         except Exception as e:
             print(f"Error merging {file}: {e}")
-            
+
     final_output_name = f"podcast_{uuid.uuid4()}.mp3"
     final_output = f"uploads/{final_output_name}"
     combined.export(final_output, format="mp3")
-    
+
     # Cleanup temp files
-    for file in audio_files:
-        if os.path.exists(file):
+    for file in ordered_files:
+        if file and os.path.exists(file):
             os.remove(file)
-            
+
     return final_output_name
 
-async def generate_infographic_markdown(selected_source_ids: list, style: str, detail_level: str, custom_prompt: str, response_language: str = "English"):
+async def generate_infographic_data(selected_source_ids: list, style: str, detail_level: str, custom_prompt: str, response_language: str = "English"):
     where_clause = None
     if selected_source_ids and len(selected_source_ids) > 0:
         if len(selected_source_ids) == 1:
@@ -379,7 +398,6 @@ async def generate_infographic_markdown(selected_source_ids: list, style: str, d
         results = collection.get(limit=20)
         
     documents = results.get("documents", [])
-    
     context = "\n\n".join(documents)
     
     lang_def = ""
@@ -388,47 +406,66 @@ async def generate_infographic_markdown(selected_source_ids: list, style: str, d
     elif response_language and response_language.lower() == "manglish":
         lang_def = " (a mix of Malayalam and English written in the English alphabet)"
 
-    system_prompt = f"""You are StudySnap AI's Infographic Engine, inspired by Google NotebookLM.
+    system_prompt = f"""You are StudySnap AI's Infographic Engine.
+Analyze the uploaded sources and generate a structured JSON payload for a professional infographic. Use only the provided content.
 
-Analyze all uploaded sources and generate a professional educational infographic that is accurate, concise, and visually structured. Use only the provided content—never hallucinate or add unsupported information.
+Your JSON must STRICTLY follow this schema:
+{{
+  "title": "String",
+  "subtitle": "String",
+  "theme": "{style}",
+  "sections": [
+    {{
+      "id": "String (unique)",
+      "title": "String",
+      "content": "String (concise paragraph)",
+      "type": "text | process | comparison | timeline | illustration",
+      "visualAssetPrompt": "String (ONLY if type is 'illustration'. A highly detailed image generation prompt for Stable Diffusion 1.5. Describe an illustration, icon, or diagram representing this section. Do NOT ask for text in the image.)"
+    }}
+  ]
+}}
 
-The infographic should include:
-- Title & Overview
-- Core Concepts
-- Process Flow
-- Architecture/Relationship Diagram (if applicable)
-- Comparison Table (if applicable)
-- Applications
-- Formula/Important Facts
-- Revision Box
-- Key Takeaways
-
-Automatically choose the best visual elements such as flowcharts, mind maps, timelines, architecture diagrams, comparison tables, icons, and illustrations.
-
-Use a clean Google Material Design style:
-- Minimal, professional layout
-- White background with blue accents
-- Flat vector illustrations
-- Clear typography
-- Well-spaced sections
-
-Return the output in Markdown with clear headings.
-The entire response MUST be in {response_language}{lang_def}.
-
-At the end, generate detailed Gemini Image prompts for every illustration, diagram, and icon required to render the infographic.
-
+The response MUST be valid JSON. 
+The text content in the JSON MUST be in {response_language}{lang_def}.
 User's custom instructions: {custom_prompt}
-
-Context:
-{context}"""
+"""
     
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": f"Here is the source content:\n\n{context}\n\nGenerate the JSON now."}
+    ]
+    
+    response = await lm_studio_client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=messages,
+        temperature=0.3,
+        max_tokens=2500,
+    )
+    
+    raw_content = response.choices[0].message.content.strip()
     try:
-        model = genai.GenerativeModel('gemini-2.5-flash')
-        response = model.generate_content(system_prompt)
-        return response.text
+        import re
+        json_match = re.search(r'```(?:json)?\s*(.*?)\s*```', raw_content, re.DOTALL)
+        if json_match:
+            raw_content = json_match.group(1)
+        return json.loads(raw_content)
     except Exception as e:
-        print(f"Error generating infographic with Gemini: {e}")
-        return f"# Error Generating Infographic\n\nThere was an error communicating with the Gemini API: {e}"
+        print(f"Failed to parse Infographic JSON: {e}")
+        print(f"Raw content: {raw_content}")
+        # Fallback response
+        return {
+            "title": "Error Generating Infographic",
+            "subtitle": "Could not parse AI response",
+            "theme": style,
+            "sections": [
+                {
+                    "id": "1",
+                    "title": "Error",
+                    "content": "There was an issue processing the content.",
+                    "type": "text"
+                }
+            ]
+        }
 
 async def generate_mind_map_data(selected_source_ids: list, custom_prompt: str, response_language: str = "English"):
     where_clause = None
@@ -498,163 +535,3 @@ async def generate_mind_map_data(selected_source_ids: list, custom_prompt: str, 
             "edges": []
         }
 
-import uuid
-import edge_tts
-from moviepy import AudioFileClip, ImageClip, concatenate_videoclips
-from PIL import Image, ImageDraw, ImageFont
-
-async def generate_video_overview(selected_source_ids: list = None, response_language: str = "English", custom_prompt: str = ""):
-    where_clause = None
-    if selected_source_ids and len(selected_source_ids) > 0:
-        if len(selected_source_ids) == 1:
-            where_clause = {"file_id": selected_source_ids[0]}
-        else:
-            where_clause = {"file_id": {"$in": selected_source_ids}}
-            
-    if where_clause:
-        results = collection.get(where=where_clause, limit=20)
-    else:
-        results = collection.get(limit=20)
-        
-    documents = results.get("documents", [])
-    
-    context = ""
-    for doc in documents:
-        context += f"{doc}\n\n"
-        
-    system_prompt = f"""You are an educational video scriptwriter. 
-Analyze the provided educational context.
-Create a short, engaging video script explaining the core concepts.
-Return ONLY a valid JSON array where each object represents a slide/scene.
-The JSON array should have a maximum of 5 scenes to keep it short.
-Do not wrap it in markdown blockquotes like ```json.
-Format:
-[
-  {{
-    "text_overlay": "Short title or key point for the screen",
-    "narration": "The spoken explanation for this slide in {response_language}."
-  }}
-]
-
-Context:
-{context}
-
-Custom Instructions: {custom_prompt}"""
-    
-    try:
-        model = genai.GenerativeModel('gemini-2.5-flash')
-        response = model.generate_content(system_prompt)
-        text_resp = response.text.strip()
-        if text_resp.startswith("```json"):
-            text_resp = text_resp[7:]
-        if text_resp.endswith("```"):
-            text_resp = text_resp[:-3]
-            
-        scenes = json.loads(text_resp)
-        
-        video_id = str(uuid.uuid4())
-        clips = []
-        
-        for i, scene in enumerate(scenes):
-            narration = scene.get('narration', 'Continuing...')
-            text_overlay = scene.get('text_overlay', '')
-            
-            # 1. Generate Audio
-            audio_path = f"public/videos/temp_{video_id}_{i}.mp3"
-            voice = "en-US-AriaNeural" if response_language.lower() == "english" else "es-ES-AlvaroNeural" # Defaulting for simplicity
-            communicate = edge_tts.Communicate(narration, voice)
-            await communicate.save(audio_path)
-            
-            # 2. Generate Image Slide (NotebookLM Style)
-            img_path = f"public/videos/temp_{video_id}_{i}.png"
-            # Background: Very dark blue/grey
-            img = Image.new('RGB', (1920, 1080), color=(11, 12, 16))
-            d = ImageDraw.Draw(img, 'RGBA')
-            
-            # Draw a subtle gradient orb/glow in the background
-            orb_color = (66, 133, 244, 40) # Google Blue with low opacity
-            d.ellipse([1920//2 - 500, 1080//2 - 500, 1920//2 + 500, 1080//2 + 500], fill=orb_color)
-            
-            # Draw Main Card
-            card_margin_x = 250
-            card_margin_y = 300
-            card_rect = [card_margin_x, card_margin_y, 1920 - card_margin_x, 1080 - card_margin_y + 100]
-            d.rounded_rectangle(card_rect, radius=40, fill=(26, 28, 35, 230), outline=(50, 50, 60, 255), width=2)
-            
-            # Draw Top Pill (Branding)
-            pill_rect = [1920//2 - 150, 150, 1920//2 + 150, 210]
-            d.rounded_rectangle(pill_rect, radius=30, fill=(40, 42, 50, 255), outline=(70, 70, 80, 255), width=2)
-            
-            try:
-                font_large = ImageFont.truetype("arialbd.ttf", 64)
-                font_small = ImageFont.truetype("arialbd.ttf", 24)
-            except:
-                font_large = ImageFont.load_default()
-                font_small = ImageFont.load_default()
-                
-            # Pill text
-            pill_text = "✨ StudySnap AI Overview"
-            d.text((1920//2, 180), pill_text, fill=(200, 200, 210), font=font_small, anchor="mm")
-                
-            # Text wrapping logic for the card
-            words = text_overlay.split()
-            lines = []
-            current_line = []
-            for word in words:
-                current_line.append(word)
-                if len(" ".join(current_line)) > 35:
-                    lines.append(" ".join(current_line))
-                    current_line = []
-            if current_line:
-                lines.append(" ".join(current_line))
-            wrapped_text = "\n".join(lines)
-            
-            # Draw Main Text centered in the card
-            d.multiline_text((1920//2, (1080 + 100)//2), wrapped_text, fill=(240, 240, 245), font=font_large, anchor="mm", align="center", spacing=20)
-            
-            # Draw a subtle "Audio Playing" indicator at the bottom of the card
-            indicator_text = "▶ Playing Audio Narration..."
-            d.text((1920//2, 1080 - card_margin_y + 50), indicator_text, fill=(100, 100, 120), font=font_small, anchor="mm")
-            
-            # Apply blur to background orb (hacky way using ImageFilter on a base layer)
-            try:
-                from PIL import ImageFilter
-                base = Image.new('RGB', (1920, 1080), color=(11, 12, 16))
-                d_base = ImageDraw.Draw(base, 'RGBA')
-                d_base.ellipse([1920//2 - 600, 1080//2 - 600, 1920//2 + 600, 1080//2 + 600], fill=(66, 133, 244, 40))
-                d_base.ellipse([200, 200, 800, 800], fill=(168, 85, 247, 30)) # Purple orb
-                base = base.filter(ImageFilter.GaussianBlur(150))
-                base.paste(img, (0,0), img.convert('RGBA'))
-                base.save(img_path)
-            except:
-                img.save(img_path)
-            
-            # 3. Combine into MoviePy Clip
-            audio_clip = AudioFileClip(audio_path)
-            img_clip = ImageClip(img_path).with_duration(audio_clip.duration)
-            img_clip = img_clip.with_audio(audio_clip)
-            clips.append(img_clip)
-            
-        # Concatenate all clips
-        final_video = concatenate_videoclips(clips)
-        output_path = f"public/videos/{video_id}.mp4"
-        # 24 fps is enough for static slideshow
-        final_video.write_videofile(output_path, fps=24, codec="libx264", audio_codec="aac")
-        
-        # Cleanup clips from memory
-        final_video.close()
-        for c in clips:
-            c.close()
-            
-        # Clean temp files (optional, leaving them for debugging is fine or we can delete)
-        for i in range(len(scenes)):
-            if os.path.exists(f"public/videos/temp_{video_id}_{i}.mp3"):
-                os.remove(f"public/videos/temp_{video_id}_{i}.mp3")
-            if os.path.exists(f"public/videos/temp_{video_id}_{i}.png"):
-                os.remove(f"public/videos/temp_{video_id}_{i}.png")
-                
-        return f"/videos/{video_id}.mp4"
-        
-    except Exception as e:
-        print(f"Error generating video overview: {e}")
-        return f"# Error Generating Video Overview\n\nThere was an error generating the video: {e}"

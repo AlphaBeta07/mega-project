@@ -1,0 +1,126 @@
+.infographic-canvas {
+  background: white;
+  width: 100%;
+  max-width: 1080px; /* Base layout width */
+  margin: 0 auto;
+  padding: 40px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #1e293b;
+  position: relative;
+  overflow: hidden;
+}
+
+.editable-text {
+  outline: none;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.editable-text:hover {
+  background-color: rgba(37, 99, 235, 0.05);
+}
+
+.editable-text:focus {
+  background-color: rgba(37, 99, 235, 0.1);
+}
+
+.infographic-header {
+  text-align: center;
+  margin-bottom: 48px;
+  padding-bottom: 24px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.infographic-header h1 {
+  font-size: 3rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 12px 0;
+  line-height: 1.2;
+}
+
+.infographic-header p {
+  font-size: 1.25rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.infographic-body {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.infographic-section {
+  display: flex;
+  background: #f8fafc;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+
+.infographic-section.type-illustration {
+  flex-direction: row;
+}
+
+.infographic-section.type-illustration:nth-child(even) {
+  flex-direction: row-reverse;
+}
+
+.section-visual {
+  flex: 1;
+  min-height: 300px;
+  background: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.section-visual img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.visual-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: #64748b;
+}
+
+.section-content {
+  flex: 1;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.section-content h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 16px 0;
+  color: #1e293b;
+}
+
+.content-body {
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: #475569;
+}
+
+/* Themes */
+.theme-dark {
+  background: #0f172a;
+  color: #f1f5f9;
+}
+.theme-dark .infographic-header h1 { color: #ffffff; }
+.theme-dark .infographic-header p { color: #94a3b8; }
+.theme-dark .infographic-section { background: #1e293b; border-color: #334155; }
+.theme-dark .section-content h3 { color: #f1f5f9; }
+.theme-dark .content-body { color: #cbd5e1; }

@@ -7,7 +7,9 @@ import os
 import shutil
 import uuid
 from fastapi.staticfiles import StaticFiles
-from rag import ingest_document, chat_with_context, get_all_sources, delete_source, generate_podcast_script, generate_tts_audio, generate_infographic_markdown, generate_mind_map_data, generate_video_overview
+from rag import ingest_document, chat_with_context, get_all_sources, delete_source, generate_podcast_script, generate_tts_audio, generate_infographic_data, generate_mind_map_data
+from comfy_client import generate_image, get_image_bytes, check_comfyui_connection
+from fastapi.responses import Response
 
 app = FastAPI(title="StudySnap AI Backend")
 
@@ -137,18 +139,47 @@ async def create_audio_overview(request: AudioOverviewRequest):
 
 @app.post("/api/infographic")
 async def create_infographic(request: InfographicRequest):
-    """Generate a structured Markdown infographic from selected sources."""
+    """Generate a structured JSON infographic plan from selected sources."""
     try:
-        markdown_content = await generate_infographic_markdown(
+        infographic_data = await generate_infographic_data(
             request.selected_source_ids,
             request.style,
             request.detail_level,
             request.custom_prompt,
             request.response_language
         )
-        return {"success": True, "markdown": markdown_content}
+        return {"success": True, "data": infographic_data}
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+class ImageRequest(BaseModel):
+    prompt: str
+
+@app.post("/api/generate-image")
+async def api_generate_image(request: ImageRequest):
+    try:
+        filename = await generate_image(request.prompt)
+        return {"success": True, "filename": filename}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/image/{filename}")
+async def api_get_image(filename: str):
+    try:
+        image_bytes = await get_image_bytes(filename)
+        return Response(content=image_bytes, media_type="image/png")
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+@app.get("/api/status")
+async def api_status():
+    comfy_status = await check_comfyui_connection()
+    return {
+        "lm_studio": True, # Assuming true since the server is running if we get here (rag handles errors)
+        "comfyui": comfy_status
+    }
 
 @app.post("/api/mindmap")
 async def create_mind_map(request: MindMapRequest):

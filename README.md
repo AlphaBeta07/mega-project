@@ -2,7 +2,7 @@
   <img src="https://img.shields.io/badge/StudySnap-AI-blueviolet?style=for-the-badge" />
   <img src="https://img.shields.io/badge/Frontend-React%2019-blue?style=for-the-badge" />
   <img src="https://img.shields.io/badge/Backend-FastAPI-green?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/Models-7B%20%7C%20120M-orange?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Models-8B%20%7C%203.8B-orange?style=for-the-badge" />
 </p>
 
 # StudySnap AI — Complete Project Documentation
@@ -56,7 +56,8 @@ The complete system is composed of four major layers:
 │                                                                              │
 │   ┌─────────────────────────────────┐ ┌──────────────────────────────────┐   │
 │   │  LM Studio (Text Generation)    │ │  ComfyUI (Image Generation)      │   │
-│   │  Custom 7B / NotebookCore 120M  │ │  Stable Diffusion 1.5 Workflows  │   │
+│   │  studysanpai (8B) or            │ │  Stable Diffusion 1.5 Workflows  │   │
+│   │  educationalassistant (3.8B)    │ │                                  │   │
 │   └─────────────────────────────────┘ └──────────────────────────────────┘   │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -79,8 +80,8 @@ mega_project/
 │
 ├── README.md                          # This file
 ├── PROJECT_DOCUMENTATION.md           # High-level architecture overview
-├── main-readme.md                     # 7B Custom Model Documentation
-├── new run.md                         # 120M Model Training Pipeline
+├── main-readme.md                     # studysanpai (8B) Model Documentation
+├── new run.md                         # educationalassistant (3.8B) Model Training Pipeline
 │
 ├── model/                             # ── MODEL TRAINING PIPELINE ──
 │   ├── config.py                      # Model hyperparameters

@@ -17,3 +17,13 @@ htmlcov/
 # Django / FastAPI
 .venv_django/
 
+# Large files & Env
+venv_old/
+backend/venv_old/
+chroma_data/
+backend/chroma_data/
+backend/uploads/
+*.mp3
+*.ogg
+*.webm
+*.pdf

@@ -7,7 +7,7 @@ import os
 import shutil
 import uuid
 from fastapi.staticfiles import StaticFiles
-from rag import ingest_document, chat_with_context, get_all_sources, delete_source, generate_podcast_script, generate_tts_audio, generate_infographic_data, generate_mind_map_data
+from rag import ingest_document, chat_with_context, get_all_sources, delete_source, generate_podcast_script, generate_tts_audio, generate_infographic_data, generate_mind_map_data, generate_quiz_data, generate_flashcards_data
 from comfy_client import generate_image, get_image_bytes, check_comfyui_connection
 from fastapi.responses import Response
 
@@ -49,6 +49,14 @@ class MindMapRequest(BaseModel):
     custom_prompt: str = ""
     response_language: Optional[str] = "English"
 
+class QuizRequest(BaseModel):
+    selected_source_ids: Optional[List[str]] = None
+    response_language: Optional[str] = "English"
+
+class FlashcardsRequest(BaseModel):
+    selected_source_ids: Optional[List[str]] = None
+    response_language: Optional[str] = "English"
+
 class VideoOverviewRequest(BaseModel):
     selected_source_ids: Optional[List[str]] = None
     custom_prompt: str = ""
@@ -57,11 +65,15 @@ class VideoOverviewRequest(BaseModel):
 class UrlRequest(BaseModel):
     url: str
 
+import asyncio
+import time
+
 @app.post("/api/sources/upload")
 async def upload_sources(files: List[UploadFile] = File(...)):
     """Upload multiple files, process them, and store embeddings in ChromaDB."""
-    uploaded_sources = []
-    for file in files:
+    t_start = time.perf_counter()
+    
+    async def process_single_file(file: UploadFile):
         try:
             file_id = str(uuid.uuid4())
             file_path = f"uploads/{file_id}_{file.filename}"
@@ -69,30 +81,62 @@ async def upload_sources(files: List[UploadFile] = File(...)):
             with open(file_path, "wb") as buffer:
                 shutil.copyfileobj(file.file, buffer)
                 
-            # Process and ingest document into ChromaDB
-            doc_meta = ingest_document(file_path, file.filename, file_id)
-            uploaded_sources.append(doc_meta)
+            # Process and ingest document into ChromaDB in a separate thread
+            doc_meta = await asyncio.to_thread(ingest_document, file_path, file.filename, file_id)
+            return doc_meta
         except Exception as e:
             print(f"Error processing {file.filename}: {e}")
-            # Continue with other files
-            pass
+            return None
+
+    tasks = [process_single_file(file) for file in files]
+    results = await asyncio.gather(*tasks)
+    
+    uploaded_sources = [res for res in results if res is not None]
             
     if not uploaded_sources:
         raise HTTPException(status_code=400, detail="Failed to process any of the uploaded files.")
         
+    print(f"[Audio] Total concurrent upload time: {time.perf_counter() - t_start:.2f}s")
     return {"success": True, "sources": uploaded_sources}
+
+from fastapi.responses import StreamingResponse
+import queue
+import threading
+import json
+import asyncio
 
 @app.post("/api/sources/url")
 async def add_url_source(request: UrlRequest):
-    """Add a URL or YouTube link as a source."""
-    try:
-        url = request.url
-        file_id = str(uuid.uuid4())
-        # Pass the URL directly as the filename, file_path can be empty or None since the function handles it
-        doc_meta = ingest_document("", url, file_id)
-        return {"success": True, "source": doc_meta}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    """Add a URL or YouTube link as a source, streaming status updates."""
+    url = request.url
+    file_id = str(uuid.uuid4())
+    q = queue.Queue()
+    
+    def sync_callback(msg: str):
+        q.put(msg)
+        
+    def worker():
+        try:
+            # ingest_document uses the callback to stream {"status": ...}
+            # and when done, it sends {"success": True, "source": ...}
+            doc_meta = ingest_document("", url, file_id, status_callback=sync_callback)
+            sync_callback(json.dumps({"success": True, "source": doc_meta}) + "\n")
+        except Exception as e:
+            sync_callback(json.dumps({"success": False, "detail": str(e)}) + "\n")
+        finally:
+            q.put(None) # Sentinel
+
+    threading.Thread(target=worker, daemon=True).start()
+    
+    async def event_generator():
+        while True:
+            # wait in an executor so we don't block event loop
+            msg = await asyncio.to_thread(q.get)
+            if msg is None:
+                break
+            yield msg
+            
+    return StreamingResponse(event_generator(), media_type="application/x-ndjson")
 
 @app.get("/api/sources")
 async def list_sources():
@@ -131,8 +175,17 @@ async def chat(request: ChatRequest):
 async def create_audio_overview(request: AudioOverviewRequest):
     """Generate a podcast-style audio overview from selected sources."""
     try:
+        t_total = time.perf_counter()
+        
+        t0 = time.perf_counter()
         script_json = await generate_podcast_script(request.selected_source_ids, request.response_language)
+        print(f"[Audio] === Script generation phase: {time.perf_counter() - t0:.2f}s ===")
+        
+        t0 = time.perf_counter()
         audio_filename = await generate_tts_audio(script_json)
+        print(f"[Audio] === TTS generation phase: {time.perf_counter() - t0:.2f}s ===")
+        
+        print(f"[Audio] ========== TOTAL AUDIO OVERVIEW: {time.perf_counter() - t_total:.2f}s ==========")
         return {"success": True, "audio_url": f"http://localhost:8000/uploads/{audio_filename}"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -206,6 +259,31 @@ async def create_video_overview(request: VideoOverviewRequest):
         return {"success": True, "video_url": video_url}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/quiz")
+async def create_quiz(request: QuizRequest):
+    """Generate a quiz from selected sources."""
+    try:
+        quiz_data = await generate_quiz_data(
+            request.selected_source_ids,
+            request.response_language
+        )
+        return {"success": True, "quiz": quiz_data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/flashcards")
+async def create_flashcards(request: FlashcardsRequest):
+    """Generate flashcards from selected sources."""
+    try:
+        flashcards_data = await generate_flashcards_data(
+            request.selected_source_ids,
+            request.response_language
+        )
+        return {"success": True, "flashcards": flashcards_data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

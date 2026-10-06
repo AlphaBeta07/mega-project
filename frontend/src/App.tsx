@@ -13,10 +13,15 @@ import NoteReaderModal from './components/NoteReaderModal';
 import AuthModal from './components/AuthModal';
 import UserProfileModal from './components/UserProfileModal';
 import BottomNav from './components/BottomNav';
+import { QuizPage } from './components/QuizPage';
+import { AudioOverviewPage } from './components/AudioOverviewPage';
+import { MindMapPage } from './components/MindMapPage';
+import { FlashcardsPage } from './components/FlashcardsPage';
+import { ReportsPage } from './components/ReportsPage';
 import type { PublicNote } from './data/mockNotes';
 import {
   Search, Plus, X, ArrowLeft,
-  ChevronDown, FileText, FileAudio, FileVideo, FileBarChart, Network,
+  ChevronDown, FileText, FileAudio, FileBarChart, Network,
   BrainCircuit, MessageSquare, Sparkles,
   ArrowRight, MoreVertical, PanelLeft, PanelRight,
   PenTool, Loader2, Globe, TrendingUp, Headphones,
@@ -27,7 +32,7 @@ import remarkGfm from 'remark-gfm';
 import './index.css';
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'home' | 'studio' | 'chat' | 'infographic'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'studio' | 'chat' | 'infographic' | 'quiz' | 'audio' | 'mindmap' | 'reports' | 'flashcards'>('home');
   const [sources, setSources] = useState<any[]>([]);
   const [selectedSourceIds, setSelectedSourceIds] = useState<Set<string>>(new Set());
   const [messages, setMessages] = useState<{ role: string, content: string }[]>([]);
@@ -58,7 +63,11 @@ function App() {
   const [mindMapData, setMindMapData] = useState<any>(null);
   const [isGeneratingMindMap, setIsGeneratingMindMap] = useState(false);
 
-  const [responseLanguage, setResponseLanguage] = useState(() => localStorage.getItem('responseLanguage') || 'English');
+  const enabledLanguages = ['English', 'Hinglish'];
+  const [responseLanguage, setResponseLanguage] = useState(() => {
+    const saved = localStorage.getItem('responseLanguage') || 'English';
+    return enabledLanguages.includes(saved) ? saved : 'English';
+  });
   const [isResponseLangDropdownOpen, setIsResponseLangDropdownOpen] = useState(false);
 
   // 2-State System & Navigation States
@@ -294,6 +303,16 @@ function App() {
       <main className="main-content" style={{ position: 'relative', overflowY: activeTab === 'home' || activeTab === 'infographic' ? 'auto' : 'hidden' }}>
         {activeTab === 'infographic' ? (
           <InfographicEditor backendUrl={backendUrl} />
+        ) : activeTab === 'quiz' ? (
+          <QuizPage backendUrl={backendUrl} selectedSourceIds={selectedSourceIds} responseLanguage={responseLanguage} onBack={() => setActiveTab('studio')} />
+        ) : activeTab === 'audio' ? (
+          <AudioOverviewPage backendUrl={backendUrl} selectedSourceIds={selectedSourceIds} responseLanguage={responseLanguage} onBack={() => setActiveTab('studio')} />
+        ) : activeTab === 'mindmap' ? (
+          <MindMapPage backendUrl={backendUrl} selectedSourceIds={selectedSourceIds} responseLanguage={responseLanguage} onBack={() => setActiveTab('studio')} onNodeClick={handleNodeClick} />
+        ) : activeTab === 'flashcards' ? (
+          <FlashcardsPage backendUrl={backendUrl} selectedSourceIds={selectedSourceIds} responseLanguage={responseLanguage} onBack={() => setActiveTab('studio')} />
+        ) : activeTab === 'reports' ? (
+          <ReportsPage onBack={() => setActiveTab('studio')} />
         ) : activeTab === 'home' ? (
           !isLoggedIn ? (
             <LandingPage
@@ -370,7 +389,7 @@ function App() {
                 <TrendingUp size={18} style={{ color: '#ffcc99' }} />
                 <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: '#e3e3e3' }} />
               </button>
-              <button onClick={() => { setIsRightSidebarOpen(true); setIsAudioModalOpen(true); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#2b2f3a', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Audio Overview">
+              <button onClick={() => { setActiveTab('audio'); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#2b2f3a', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Audio Overview">
                 <FileAudio size={18} style={{ color: '#a8c7fa' }} />
                 <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: '#e3e3e3' }} />
               </button>
@@ -378,24 +397,16 @@ function App() {
                 <Headphones size={18} style={{ color: '#c7a8fa' }} />
                 <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: '#e3e3e3' }} />
               </button>
-              {/* <button onClick={() => { setIsRightSidebarOpen(true); handleStudioAction('slide'); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#353226', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Slide Deck">
-                <PlaySquare size={18} style={{ color: '#d4e6ba' }} />
-                <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: '#e3e3e3' }} />
-              </button> */}
 
-              {/* <button onClick={() => { setIsRightSidebarOpen(true); handleStudioAction('mindmap'); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#352631', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Mind Map">
-                <Network size={18} style={{ color: '#e5b3d6' }} />
-                <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: '#e3e3e3' }} />
-              </button> */}
-              <button onClick={() => { setIsRightSidebarOpen(true); handleStudioAction('reports'); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#353326', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Reports">
+              <button onClick={() => { setActiveTab('reports'); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#353326', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Reports">
                 <FileText size={18} style={{ color: '#dfc98a' }} />
                 <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: '#e3e3e3' }} />
               </button>
-              <button onClick={() => { setIsRightSidebarOpen(true); handleStudioAction('flashcards'); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#352826', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Flashcards">
+              <button onClick={() => { setActiveTab('flashcards'); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#352826', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Flashcards">
                 <BrainCircuit size={18} style={{ color: '#e5b0a3' }} />
                 <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: '#e3e3e3' }} />
               </button>
-              <button onClick={() => { setIsRightSidebarOpen(true); handleStudioAction('quiz'); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#263336', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Quiz">
+              <button onClick={() => { setActiveTab('quiz'); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#263336', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Quiz">
                 <MessageSquare size={18} style={{ color: '#a3d8d3' }} />
                 <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: '#e3e3e3' }} />
               </button>
@@ -403,7 +414,7 @@ function App() {
                 <FileBarChart size={18} style={{ color: '#d6b3e5' }} />
                 <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: '#e3e3e3' }} />
               </button>
-              <button onClick={() => { setIsRightSidebarOpen(true); setIsMindMapModalOpen(true); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#352c26', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Mind Map">
+              <button onClick={() => { setActiveTab('mindmap'); }} style={{ width: '40px', height: '40px', minHeight: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#352c26', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }} title="Mind Map">
                 <Network size={18} style={{ color: '#e5c9b3' }} />
                 <Plus size={10} strokeWidth={3} style={{ position: 'absolute', bottom: 4, right: 4, color: '#e3e3e3' }} />
               </button>
@@ -498,7 +509,7 @@ function App() {
                   <div className="studio-grid">
                     <div className="studio-card card-pyq" onClick={() => handleStudioAction('pyq')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><TrendingUp size={18} className="studio-card-icon" style={{ color: '#ffcc99' }} /><span className="studio-card-title">PYQ Analysis</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div>
                     <div className="studio-card card-audionotes" onClick={() => handleStudioAction('audionotes')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><Headphones size={18} className="studio-card-icon" style={{ color: '#c7a8fa' }} /><span className="studio-card-title">Audio to Notes</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div>
-                    <div className="studio-card card-audio" onClick={() => setIsAudioModalOpen(true)} style={{ cursor: 'pointer' }}>
+                    <div className="studio-card card-audio" onClick={() => setActiveTab('audio')} style={{ cursor: 'pointer' }}>
                       <div className="studio-card-left">
                         <FileAudio size={18} className="studio-card-icon" />
                         <span className="studio-card-title">Audio Overview</span>
@@ -507,11 +518,11 @@ function App() {
                     </div>
                     {/* <div className="studio-card card-slide" onClick={() => handleStudioAction('slide')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><PlaySquare size={18} className="studio-card-icon" style={{ color: '#d4e6ba' }} /><span className="studio-card-title">Slide Deck</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div> */}
 
-                    <div className="studio-card card-mindmap" onClick={() => handleStudioAction('mindmap')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><Network size={18} className="studio-card-icon" style={{ color: '#e5b3d6' }} /><span className="studio-card-title">Mind Map</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div>
-                    <div className="studio-card card-reports" onClick={() => handleStudioAction('reports')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><FileText size={18} className="studio-card-icon" style={{ color: '#dfc98a' }} /><span className="studio-card-title">Reports</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div>
-                    <div className="studio-card card-flashcards" onClick={() => handleStudioAction('flashcards')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><BrainCircuit size={18} className="studio-card-icon" style={{ color: '#e5b0a3' }} /><span className="studio-card-title">Flashcards</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div>
-                    <div className="studio-card card-quiz" onClick={() => handleStudioAction('quiz')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><MessageSquare size={18} className="studio-card-icon" style={{ color: '#a3d8d3' }} /><span className="studio-card-title">Quiz</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div>
-                    <div className="studio-card card-infographic" onClick={() => setIsInfographicModalOpen(true)} style={{ cursor: 'pointer' }}><div className="studio-card-left"><FileBarChart size={18} className="studio-card-icon" style={{ color: '#d6b3e5' }} /><span className="studio-card-title">Infographic</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div>
+                    <div className="studio-card card-mindmap" onClick={() => setActiveTab('mindmap')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><Network size={18} className="studio-card-icon" style={{ color: '#e5b3d6' }} /><span className="studio-card-title">Mind Map</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div>
+                    <div className="studio-card card-reports" onClick={() => setActiveTab('reports')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><FileText size={18} className="studio-card-icon" style={{ color: '#dfc98a' }} /><span className="studio-card-title">Reports</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div>
+                    <div className="studio-card card-flashcards" onClick={() => setActiveTab('flashcards')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><BrainCircuit size={18} className="studio-card-icon" style={{ color: '#e5b0a3' }} /><span className="studio-card-title">Flashcards</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div>
+                    <div className="studio-card card-quiz" onClick={() => setActiveTab('quiz')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><MessageSquare size={18} className="studio-card-icon" style={{ color: '#a3d8d3' }} /><span className="studio-card-title">Quiz</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div>
+                    <div className="studio-card card-infographic" onClick={() => setActiveTab('infographic')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><FileBarChart size={18} className="studio-card-icon" style={{ color: '#d6b3e5' }} /><span className="studio-card-title">Infographic</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div>
                     {/* <div className="studio-card card-mindmap" onClick={() => setIsMindMapModalOpen(true)} style={{ cursor: 'pointer' }}><div className="studio-card-left"><Network size={18} className="studio-card-icon" style={{ color: '#e5c9b3' }} /><span className="studio-card-title">Mind Map</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div> */}
                     {/* <div className="studio-card card-table" onClick={() => handleStudioAction('table')} style={{ cursor: 'pointer' }}><div className="studio-card-left"><Table size={18} className="studio-card-icon" style={{ color: '#b3bfe5' }} /><span className="studio-card-title">Data Table</span></div><ChevronDown size={16} className="studio-card-arrow" style={{ transform: 'rotate(-90deg)' }} /></div> */}
                   </div>
@@ -694,15 +705,36 @@ function App() {
               </button>
               {isResponseLangDropdownOpen && (
                 <div style={{ position: 'absolute', bottom: '100%', left: 0, marginBottom: '12px', background: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '8px', zIndex: 100, width: '160px', boxShadow: '0 4px 20px rgba(0,0,0,0.5)', maxHeight: '300px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  {["English", "Hinglish", "Manglish", "Hindi", "Marathi"].map(lang => (
+                  {[
+                    { lang: "English", enabled: true },
+                    { lang: "Hinglish", enabled: true },
+                    { lang: "Manglish", enabled: false },
+                    { lang: "Hindi", enabled: false },
+                    { lang: "Marathi", enabled: false },
+                  ].map(({ lang, enabled }) => (
                     <div
                       key={lang}
-                      onClick={() => { setResponseLanguage(lang); setIsResponseLangDropdownOpen(false); }}
-                      style={{ padding: '8px 12px', fontSize: '14px', cursor: 'pointer', borderRadius: '8px', background: responseLanguage === lang ? 'var(--bg-button)' : 'transparent', color: responseLanguage === lang ? 'var(--text-primary)' : 'var(--text-secondary)', transition: 'all 0.2s' }}
-                      onMouseOver={(e) => { if (responseLanguage !== lang) e.currentTarget.style.background = 'var(--bg-button-hover)' }}
+                      onClick={() => { if (enabled) { setResponseLanguage(lang); setIsResponseLangDropdownOpen(false); } }}
+                      style={{
+                        padding: '8px 12px',
+                        fontSize: '14px',
+                        cursor: enabled ? 'pointer' : 'default',
+                        borderRadius: '8px',
+                        background: responseLanguage === lang ? 'var(--bg-button)' : 'transparent',
+                        color: !enabled ? 'var(--color-text-disabled, #4A556B)' : responseLanguage === lang ? 'var(--text-primary)' : 'var(--text-secondary)',
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        opacity: enabled ? 1 : 0.6,
+                      }}
+                      onMouseOver={(e) => { if (enabled && responseLanguage !== lang) e.currentTarget.style.background = 'var(--bg-button-hover)' }}
                       onMouseOut={(e) => e.currentTarget.style.background = responseLanguage === lang ? 'var(--bg-button)' : 'transparent'}
                     >
-                      {lang}
+                      <span>{lang}</span>
+                      {!enabled && (
+                        <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--color-accent-500, #F4A900)', background: 'rgba(244, 169, 0, 0.1)', padding: '2px 6px', borderRadius: '4px', letterSpacing: '0.04em' }}>SOON</span>
+                      )}
                     </div>
                   ))}
                 </div>

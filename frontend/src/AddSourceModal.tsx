@@ -3,7 +3,7 @@ import { useDropzone } from 'react-dropzone';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, UploadCloud, FileText, PlaySquare, Link2,
-  Trash2, FileAudio, FileVideo, FileSpreadsheet, Loader2, CheckCircle
+  Trash2, FileAudio, FileVideo, FileSpreadsheet, Loader2, CheckCircle, Image as ImageIcon
 } from 'lucide-react';
 
 interface AddSourceModalProps {
@@ -28,7 +28,11 @@ const ACCEPTED_FORMATS = {
   'audio/wav': ['.wav'],
   'audio/x-m4a': ['.m4a'],
   'audio/ogg': ['.ogg', '.opus'],
-  'audio/aac': ['.aac']
+  'audio/aac': ['.aac'],
+  'image/png': ['.png'],
+  'image/jpeg': ['.jpg', '.jpeg'],
+  'image/webp': ['.webp'],
+  'image/gif': ['.gif']
 };
 
 export default function AddSourceModal({ isOpen, onClose, onUploadSuccess, backendUrl }: AddSourceModalProps) {
@@ -36,6 +40,7 @@ export default function AddSourceModal({ isOpen, onClose, onUploadSuccess, backe
   const [urlInput, setUrlInput] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatusText, setUploadStatusText] = useState("Processing...");
   const [activeTab, setActiveTab] = useState<'files' | 'url'>('files');
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -57,71 +62,110 @@ export default function AddSourceModal({ isOpen, onClose, onUploadSuccess, backe
     if (['mp3', 'wav', 'm4a', 'ogg', 'opus', 'aac'].includes(ext || '')) return <FileAudio size={20} className="text-blue-400" />;
     if (['mp4', 'mov'].includes(ext || '')) return <FileVideo size={20} className="text-purple-400" />;
     if (['csv', 'xlsx'].includes(ext || '')) return <FileSpreadsheet size={20} className="text-green-400" />;
+    if (['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext || '')) return <ImageIcon size={20} className="text-indigo-400" />;
     return <FileText size={20} className="text-gray-400" />;
   };
 
   const handleUpload = async () => {
-    if (activeTab === 'files' && files.length > 0) {
-      setIsUploading(true);
-      setUploadProgress(10);
-      
-      const formData = new FormData();
-      files.forEach(file => formData.append('files', file));
-      
-      try {
-        // Fake progress interval
-        const progressInterval = setInterval(() => {
-          setUploadProgress(prev => Math.min(prev + 15, 90));
-        }, 500);
+    // Determine what to upload based on current inputs, regardless of active tab
+    const hasFiles = files.length > 0;
+    const hasUrl = !!urlInput.trim();
+    
+    if (!hasFiles && !hasUrl) return;
 
-        const res = await fetch(`${backendUrl}/api/sources/upload`, {
-          method: 'POST',
-          body: formData
-        });
-        
-        clearInterval(progressInterval);
-        setUploadProgress(100);
-        
-        const data = await res.json();
-        if (data.success) {
-          setTimeout(() => {
-            onUploadSuccess(data.sources);
-            resetAndClose();
+    setIsUploading(true);
+    setUploadProgress(10);
+    setUploadStatusText("Starting...");
+    
+    let allSources: any[] = [];
+    let filePromise = Promise.resolve();
+    let urlPromise = Promise.resolve();
+
+    // 1. Files
+    if (hasFiles) {
+      filePromise = (async () => {
+        const formData = new FormData();
+        files.forEach(file => formData.append('files', file));
+        try {
+          const progressInterval = setInterval(() => {
+            setUploadProgress(prev => Math.min(prev + 15, 90));
           }, 500);
-        } else {
-          alert('Upload failed: ' + (data.detail || 'Unknown error'));
-          setIsUploading(false);
+
+          const res = await fetch(`${backendUrl}/api/sources/upload`, {
+            method: 'POST',
+            body: formData
+          });
+          clearInterval(progressInterval);
+          
+          const data = await res.json();
+          if (data.success) {
+            allSources = [...allSources, ...data.sources];
+          } else {
+            alert('File upload failed: ' + (data.detail || 'Unknown error'));
+          }
+        } catch (err) {
+          alert('File upload failed');
         }
-      } catch (err) {
-        console.error("Upload Error", err);
-        alert('Upload failed');
-        setIsUploading(false);
-      }
-    } else if (activeTab === 'url' && urlInput.trim()) {
-      setIsUploading(true);
-      setUploadProgress(50);
-      try {
-        const res = await fetch(`${backendUrl}/api/sources/url`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: urlInput.trim() })
-        });
-        const data = await res.json();
-        setUploadProgress(100);
-        if (data.success) {
-          setTimeout(() => {
-            onUploadSuccess([data.source]);
-            resetAndClose();
-          }, 500);
-        } else {
-          alert('Failed to process URL: ' + (data.detail || 'Unknown error'));
-          setIsUploading(false);
+      })();
+    }
+
+    // 2. URL (Streaming)
+    if (hasUrl) {
+      urlPromise = (async () => {
+        try {
+          const res = await fetch(`${backendUrl}/api/sources/url`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: urlInput.trim() })
+          });
+          if (!res.body) throw new Error("No response body");
+          
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder('utf-8');
+          let done = false;
+          
+          while (!done) {
+            const { value, done: readerDone } = await reader.read();
+            done = readerDone;
+            if (value) {
+              const chunk = decoder.decode(value, { stream: true });
+              const lines = chunk.split('\n').filter(Boolean);
+              for (const line of lines) {
+                try {
+                  const data = JSON.parse(line);
+                  if (data.status) {
+                    setUploadStatusText(data.status);
+                    setUploadProgress(prev => Math.min(prev + 15, 90));
+                  }
+                  if (data.success !== undefined) {
+                    if (data.success) {
+                      allSources.push(data.source);
+                    } else {
+                      alert('Failed to process URL: ' + (data.detail || 'Unknown error'));
+                    }
+                  }
+                } catch (e) {}
+              }
+            }
+          }
+        } catch (err) {
+          alert('Failed to process URL');
         }
-      } catch (err) {
-        console.error("URL Error", err);
-        alert('Failed to process URL');
-        setIsUploading(false);
-      }
+      })();
+    }
+
+    await Promise.all([filePromise, urlPromise]);
+    
+    setUploadProgress(100);
+    setUploadStatusText("Complete!");
+    
+    if (allSources.length > 0) {
+      setTimeout(() => {
+        onUploadSuccess(allSources);
+        resetAndClose();
+      }, 500);
+    } else {
+      setIsUploading(false);
     }
   };
 
@@ -130,10 +174,14 @@ export default function AddSourceModal({ isOpen, onClose, onUploadSuccess, backe
     setUrlInput('');
     setIsUploading(false);
     setUploadProgress(0);
+    setUploadStatusText("Processing...");
     onClose();
   };
 
   if (!isOpen) return null;
+
+  // The button is disabled if uploading, OR if BOTH inputs are empty
+  const isUploadDisabled = isUploading || (files.length === 0 && !urlInput.trim());
 
   return (
     <AnimatePresence>
@@ -146,7 +194,7 @@ export default function AddSourceModal({ isOpen, onClose, onUploadSuccess, backe
         >
           <div className="modal-header">
             <h2>Add Sources</h2>
-            <button onClick={resetAndClose} className="icon-btn"><X size={20} /></button>
+            <button onClick={resetAndClose} className="icon-btn" disabled={isUploading}><X size={20} /></button>
           </div>
 
           <div className="modal-tabs">
@@ -164,7 +212,7 @@ export default function AddSourceModal({ isOpen, onClose, onUploadSuccess, backe
                   <input {...getInputProps()} />
                   <UploadCloud size={48} className="dropzone-icon" />
                   <h3>Drag & drop files here, or click to browse</h3>
-                  <p>Supports PDF, DOCX, TXT, CSV, XLSX, PPTX, MD, HTML, JSON, Audio</p>
+                  <p>Supports PDF, DOCX, TXT, CSV, XLSX, PPTX, MD, HTML, JSON, Audio, Images</p>
                 </div>
 
                 {files.length > 0 && (
@@ -201,6 +249,7 @@ export default function AddSourceModal({ isOpen, onClose, onUploadSuccess, backe
                   placeholder="https://example.com or https://youtube.com/watch?v=..." 
                   value={urlInput}
                   onChange={(e) => setUrlInput(e.target.value)}
+                  disabled={isUploading}
                 />
               </div>
             )}
@@ -218,7 +267,7 @@ export default function AddSourceModal({ isOpen, onClose, onUploadSuccess, backe
                 </div>
                 <span className="progress-text">
                   {uploadProgress === 100 ? <CheckCircle size={14} color="#4ade80" /> : <Loader2 size={14} className="animate-spin" />}
-                  {uploadProgress === 100 ? "Complete!" : "Processing..."}
+                  {uploadProgress === 100 ? "Complete!" : uploadStatusText}
                 </span>
               </div>
             )}
@@ -227,9 +276,9 @@ export default function AddSourceModal({ isOpen, onClose, onUploadSuccess, backe
             <button 
               className="btn-primary" 
               onClick={handleUpload} 
-              disabled={isUploading || (activeTab === 'files' ? files.length === 0 : !urlInput.trim())}
+              disabled={isUploadDisabled}
             >
-              {isUploading ? 'Uploading...' : 'Add Sources'}
+              {isUploading ? 'Processing...' : 'Add Sources'}
             </button>
           </div>
         </motion.div>

@@ -73,20 +73,27 @@ copy model\export\gguf\notebookcore-120m-Q4_K_M.gguf C:\Users\Anish\.cache\lm-st
 # Open LM Studio → Local Server → Load notebookcore-120m-Q4_K_M → Start Server (port 1234)
 ```
 
-## Start StudySnap AI (3 terminals)
+## Start StudySnap AI (4 Terminals)
 
 ```bash
-# Terminal 1: LM Studio already running on port 1234
+# Terminal 1: LM Studio (Local AI Model)
+# - Open the LM Studio desktop app
+# - Load your local model (studysanpai or educationalassistant)
+# - Start the local server on port 1234
 
-# Terminal 2: Backend
+# Terminal 2: Backend (FastAPI)
 cd backend
 .\venv\Scripts\Activate.ps1
-python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-uvicorn main:app --reload
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
-# Terminal 3: Frontend
+# Terminal 3: Frontend (React/Vite)
 cd frontend
 npm run dev
+
+# Terminal 4: ComfyUI (Image Generation)
+cd D:\ComfyUI
+.\venv\Scripts\Activate.ps1
+python main.py
 ```
 
 ## Verify

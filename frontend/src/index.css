@@ -907,13 +907,10 @@ h1, h2, h3, h4, h5, h6 {
 .markdown-body h2 {
   font-size: 1.25rem;
   font-weight: 600;
-  color: var(--accent-color);
-  margin-top: 32px;
+  color: var(--text-primary);
+  margin-top: 28px;
   margin-bottom: 16px;
-  background: rgba(168, 199, 250, 0.05);
-  padding: 10px 14px;
-  border-radius: 8px;
-  border-left: 3px solid var(--accent-color);
+  letter-spacing: -0.01em;
 }
 
 .markdown-body h3 {

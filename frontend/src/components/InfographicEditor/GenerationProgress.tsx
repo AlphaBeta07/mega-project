@@ -31,7 +31,7 @@ export const GenerationProgress: React.FC<Props> = ({ steps, overallProgress }) 
       )}
       
       <div className="steps-list">
-        {steps.map((step, index) => (
+        {steps.map((step) => (
           <div key={step.id} className={`step-item ${step.status}`}>
             <div className="step-icon">
               {step.status === 'completed' && <CheckCircle size={20} className="icon-success" />}

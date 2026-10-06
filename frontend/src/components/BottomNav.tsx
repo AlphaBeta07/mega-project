@@ -1,11 +1,11 @@
 import React from 'react';
-import { Home, MessageSquare, LogIn, Sparkles, User, Image as ImageIcon } from 'lucide-react';
+import { Home, MessageSquare, LogIn, Sparkles, User } from 'lucide-react';
 import './BottomNav.css';
 
 interface BottomNavProps {
-  activeTab: 'home' | 'studio' | 'chat' | 'infographic';
+  activeTab: 'home' | 'studio' | 'chat' | 'infographic' | 'quiz' | 'audio' | 'mindmap' | 'reports' | 'flashcards';
   isLoggedIn: boolean;
-  onTabChange: (tab: 'home' | 'studio' | 'chat' | 'infographic') => void;
+  onTabChange: (tab: 'home' | 'studio' | 'chat' | 'infographic' | 'quiz' | 'audio' | 'mindmap' | 'reports' | 'flashcards') => void;
   onOpenAuth: () => void;
   onOpenAccount?: () => void;
 }

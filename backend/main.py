@@ -28,6 +28,11 @@ from database import (
     NotebookCRUD, NotebookCreate, NotebookUpdate, NotebookInDB
 )
 from auth import get_current_user, DEMO_USER_ID
+from prompt_registry import (
+    resolve_request_instruction,
+    sanitize_feature_title,
+    sanitize_message_content
+)
 
 logger = logging.getLogger("studysnap.api")
 
@@ -63,6 +68,9 @@ app.mount("/videos", StaticFiles(directory="public/videos"), name="videos")
 class ChatRequest(BaseModel):
     session_id: Optional[str] = None
     message: str
+    display_title: Optional[str] = None
+    system_instruction: Optional[str] = None
+    feature: Optional[str] = None
     history: List[dict] = []
     selected_source_ids: Optional[List[str]] = None
     response_language: Optional[str] = "English"
@@ -263,6 +271,9 @@ async def get_sessions(
     token = authorization.split()[1] if authorization and len(authorization.split()) == 2 else None
     try:
         sessions = await ChatbotCRUD.list_user_sessions(user_id=current_user["id"], access_token=token)
+        for s in sessions:
+            if "title" in s:
+                s["title"] = sanitize_feature_title(s["title"])
         return {"sessions": sessions}
     except Exception as e:
         print(f"Supabase Sessions Fetch Warning: {e}")
@@ -279,6 +290,15 @@ async def get_session_detail(
     session = await ChatbotCRUD.get_session(session_id, access_token=token)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found.")
+    if "title" in session:
+        session["title"] = sanitize_feature_title(session["title"])
+    if "messages" in session:
+        for m in session["messages"]:
+            if m.get("role") == "user":
+                if "message_content" in m:
+                    m["message_content"] = sanitize_message_content(m["message_content"])
+                if "content" in m:
+                    m["content"] = sanitize_message_content(m["content"])
     return {"session": session}
 
 @app.delete("/api/sessions/{session_id}")
@@ -302,11 +322,20 @@ async def chat(
     token = authorization.split()[1] if authorization and len(authorization.split()) == 2 else None
     user_id = current_user["id"]
     try:
+        # Resolve model query, feature instructions, and user-facing display title
+        query_for_model, system_instruction, resolved_title = resolve_request_instruction(
+            request.message,
+            request.system_instruction,
+            request.feature
+        )
+        display_title = request.display_title or resolved_title
+
         response_text, sources_used = await chat_with_context(
-            request.message, 
-            request.history, 
-            request.selected_source_ids,
-            request.response_language
+            query=query_for_model, 
+            history=request.history, 
+            selected_source_ids=request.selected_source_ids,
+            response_language=request.response_language,
+            system_instruction=system_instruction
         )
 
         session_id = request.session_id or str(uuid.uuid4())
@@ -316,14 +345,14 @@ async def chat(
                 await ChatbotCRUD.create_session({
                     "session_id": session_id,
                     "user_id": user_id,
-                    "title": request.message[:30] + ("..." if len(request.message) > 30 else ""),
+                    "title": display_title,
                     "selected_source_ids": request.selected_source_ids or []
                 }, access_token=token)
 
             await ChatbotCRUD.add_message(session_id, {
                 "user_id": user_id,
                 "role": "user",
-                "content": request.message,
+                "content": display_title,
                 "sources_used": []
             }, access_token=token)
             await ChatbotCRUD.add_message(session_id, {
@@ -334,6 +363,15 @@ async def chat(
             }, access_token=token)
         except Exception as db_err:
             print(f"Supabase Chat Session Persistence Warning: {db_err}")
+
+        return {
+            "response": response_text, 
+            "sources": sources_used, 
+            "session_id": session_id,
+            "display_title": display_title
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
         return {"response": response_text, "sources": sources_used, "session_id": session_id}
     except Exception as e:

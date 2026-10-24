@@ -54,6 +54,12 @@ html.theme-transitioning *::after {
   }
 }
 
+html,
+body,
+#root {
+  cursor: var(--cursor-default);
+}
+
 body {
   /* Body text uses Inter; headings in JSX should use var(--font-display) */
   font-family: var(--font-body);
@@ -71,7 +77,7 @@ body {
 
 button {
   font-family: var(--font-body);
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
   border: none;
   background: none;
   color: inherit;
@@ -221,6 +227,627 @@ h6 {
   padding: 16px;
   gap: 16px;
   background-color: var(--app-bg, var(--color-bg-base));
+}
+
+.main-content.workspace-mode {
+  padding: 0;
+  gap: 0;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.notebook-workspace-view {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.notebook-header {
+  height: 48px;
+  min-height: 48px;
+  flex-shrink: 0;
+  background-color: #101010;
+  border-bottom: 1px solid #282828;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  z-index: 30;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.workspace-panels-container {
+  flex: 1;
+  min-height: 0;
+  height: calc(100vh - 48px);
+  display: flex;
+  gap: 14px;
+  padding: 10px 14px 14px 14px;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Ordering: Studio on Left (1), Chat in Center (2), Sources on Right (3) */
+.sidebar-right,
+.sidebar-right-mini {
+  order: 1;
+}
+
+.chat-center {
+  order: 2;
+}
+
+.sidebar-left,
+.sidebar-left-mini {
+  order: 3;
+}
+
+/* ── NotebookLM-Inspired Workspace Top Navbar ─────────────────────── */
+.notebook-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.navbar-brand-logo-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: var(--cursor-pointer);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: transform 0.2s, opacity 0.2s;
+  flex-shrink: 0;
+}
+
+.navbar-brand-logo-btn:hover {
+  transform: scale(1.04);
+}
+
+.navbar-logo-icon {
+  width: 30px;
+  height: 30px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f3f4f6;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  transition: all 0.2s ease;
+}
+
+.navbar-brand-logo-btn:hover .navbar-logo-icon {
+  border-color: rgba(255, 255, 255, 0.25);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.05) 100%);
+  color: #ffffff;
+}
+
+.navbar-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.notebook-title-input {
+  font-size: 16px;
+  font-weight: 500;
+  color: #f3f4f6;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 2px 8px;
+  outline: none;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  width: 280px;
+  max-width: 440px;
+  min-width: 140px;
+  cursor: text;
+  line-height: 1.3;
+}
+
+.notebook-title-input:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.notebook-title-input:focus {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #555555;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08);
+}
+
+.notebook-save-indicator {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: #9ca3af;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.save-status-text {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #9ca3af;
+}
+
+.save-status-text.saving {
+  color: #f59e0b;
+}
+
+.save-status-text.saved {
+  color: #9ca3af;
+}
+
+.save-status-text.error {
+  color: #ef4444;
+}
+
+.notebook-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.navbar-btn-create {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid #383838;
+  border-radius: 16px;
+  padding: 5px 12px;
+  color: #e5e7eb;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: var(--cursor-pointer);
+  transition: all 0.2s ease;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.navbar-btn-create:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #555555;
+  color: #ffffff;
+}
+
+.navbar-btn-create:active {
+  transform: scale(0.98);
+}
+
+.navbar-btn-share {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid #383838;
+  border-radius: 16px;
+  padding: 5px 12px;
+  color: #e5e7eb;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: var(--cursor-pointer);
+  transition: all 0.2s ease;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.navbar-btn-share:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #555555;
+  color: #ffffff;
+}
+
+.navbar-btn-share:active {
+  transform: scale(0.98);
+}
+
+.navbar-dropdown-wrapper {
+  position: relative;
+}
+
+.navbar-icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  cursor: var(--cursor-pointer);
+  transition: all 0.2s ease;
+}
+
+.navbar-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.navbar-icon-btn:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.3);
+  outline-offset: 2px;
+}
+
+.navbar-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 200px;
+  background: #18181b;
+  border: 1px solid #303030;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  padding: 5px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  backdrop-filter: blur(16px);
+  animation: fadeIn 0.15s ease-out;
+}
+
+.navbar-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: #d1d5db;
+  font-size: 13px;
+  font-weight: 400;
+  cursor: var(--cursor-pointer);
+  text-align: left;
+  width: 100%;
+  transition: background 0.15s, color 0.15s;
+}
+
+.navbar-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.navbar-avatar-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  padding: 0;
+  background: transparent;
+  border: 2px solid transparent;
+  cursor: var(--cursor-pointer);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.navbar-avatar-btn:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: scale(1.04);
+}
+
+.navbar-avatar-btn:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.3);
+  outline-offset: 2px;
+}
+
+.navbar-avatar-inner {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+  border: 1px solid #4b5563;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.navbar-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.navbar-share-toast {
+  position: fixed;
+  top: 56px;
+  right: 16px;
+  background: #18181b;
+  border: 1px solid #383838;
+  color: #10b981;
+  padding: 8px 14px;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* ── Mobile Workspace Navigation Tabs ─────────────────────── */
+.mobile-workspace-nav {
+  display: none;
+  background-color: #101010;
+  border-bottom: 1px solid #282828;
+  padding: 6px 12px;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  z-index: 25;
+  flex-shrink: 0;
+}
+
+.mobile-workspace-tab {
+  flex: 1;
+  max-width: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: var(--cursor-pointer);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  min-height: 36px;
+}
+
+.mobile-workspace-tab:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.mobile-workspace-tab.active {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.mobile-workspace-tab-badge {
+  background: var(--color-accent-500, #F59E0B);
+  color: #000000;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  min-width: 16px;
+  text-align: center;
+}
+
+/* ── Tablet Breakpoint (768px – 1023px) ───────────────────────── */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .mobile-workspace-nav {
+    display: none !important;
+  }
+  .notebook-header {
+    padding: 0 12px;
+    gap: 8px;
+  }
+  .notebook-header-right {
+    gap: 6px;
+  }
+  .notebook-title-input {
+    font-size: 14.5px;
+    max-width: 200px;
+  }
+  .workspace-panels-container {
+    gap: 8px;
+    padding: 8px;
+  }
+  .sidebar-left {
+    width: 260px;
+    min-width: 260px;
+  }
+  .sidebar-right {
+    width: 280px;
+    min-width: 280px;
+  }
+  .chat-center {
+    flex: 1;
+    min-width: 240px;
+  }
+  .-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+/* ── Mobile Breakpoint (< 768px) ────────────────────────────── */
+@media (max-width: 767px) {
+  .notebook-header {
+    height: 44px;
+    min-height: 44px;
+    padding: 0 10px;
+    gap: 8px;
+  }
+
+  .notebook-title-input {
+    font-size: 14px;
+    max-width: 130px;
+    min-width: 60px;
+  }
+
+  .navbar-btn-create span {
+    display: none;
+  }
+  .navbar-btn-create {
+    padding: 6px 8px;
+  }
+
+  .notebook-save-indicator {
+    display: none;
+  }
+
+  .mobile-workspace-nav {
+    display: flex;
+  }
+
+  .workspace-panels-container {
+    height: calc(100vh - 44px - 48px);
+    padding: 6px 8px 8px 8px;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  .sidebar-left-mini,
+  .sidebar-right-mini {
+    display: none !important;
+  }
+
+  /* Single Active Workspace Panel on Mobile */
+  .workspace-panels-container[data-mobile-tab="chat"] .chat-center {
+    display: flex !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    border-radius: 12px;
+  }
+  .workspace-panels-container[data-mobile-tab="chat"] .sidebar-left,
+  .workspace-panels-container[data-mobile-tab="chat"] .sidebar-right {
+    display: none !important;
+  }
+
+  .workspace-panels-container[data-mobile-tab="sources"] .sidebar-left {
+    display: flex !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    border-radius: 12px;
+  }
+  .workspace-panels-container[data-mobile-tab="sources"] .chat-center,
+  .workspace-panels-container[data-mobile-tab="sources"] .sidebar-right {
+    display: none !important;
+  }
+
+  .workspace-panels-container[data-mobile-tab="studio"] .sidebar-right {
+    display: flex !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    border-radius: 12px;
+  }
+  .workspace-panels-container[data-mobile-tab="studio"] .chat-center,
+  .workspace-panels-container[data-mobile-tab="studio"] .sidebar-left {
+    display: none !important;
+  }
+
+  /* Single Column Feature Cards on Mobile */
+  .-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  /* Chat composer pinned to bottom with safe-area spacing */
+  .chat-input-container {
+    width: calc(100% - 16px);
+    bottom: max(8px, env(safe-area-inset-bottom, 8px));
+    padding: 8px 10px 8px 14px;
+    min-height: 46px;
+    border-radius: 20px;
+  }
+
+  .chat-content {
+    padding: 16px 12px 90px 12px;
+  }
+
+  .welcome-title {
+    font-size: 22px;
+    margin-bottom: 12px;
+  }
+
+  .welcome-desc {
+    font-size: 13.5px;
+    margin-bottom: 20px;
+  }
+
+  .disclaimer {
+    display: none;
+  }
+}
+
+/* ── Small Mobile Breakpoint (320px – 480px) ─────────────────── */
+@media (max-width: 480px) {
+  .notebook-header {
+    padding: 0 6px;
+    gap: 4px;
+  }
+
+  .navbar-logo-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .notebook-title-input {
+    font-size: 13px;
+    max-width: 100px;
+    min-width: 50px;
+  }
+
+  .navbar-btn-create {
+    padding: 4px 6px;
+  }
+
+  .navbar-icon-btn,
+  .navbar-avatar-btn,
+  .navbar-avatar-inner {
+    width: 28px;
+    height: 28px;
+    font-size: 11px;
+  }
+
+  .mobile-workspace-tab {
+    padding: 5px 8px;
+    font-size: 12px;
+    gap: 4px;
+  }
+
+  .suggestions-list {
+    gap: 8px;
+  }
+  .suggestion-btn {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .-card {
+    padding: 10px 12px;
+  }
+  .-card-title {
+    font-size: 13px;
+  }
 }
 
 /* Panels */
@@ -386,7 +1013,7 @@ h6 {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px 40px 160px 40px;
+  padding: 32px 32px 100px 32px;
   overflow-y: auto;
   text-align: left;
   max-width: 800px;
@@ -455,7 +1082,7 @@ h6 {
 
 .chat-input-container {
   position: absolute;
-  bottom: 84px;
+  bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
   width: 90%;
@@ -545,7 +1172,7 @@ h6 {
   border: none;
   color: var(--button-primary-text, var(--color-cta-text));
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
   flex-shrink: 0;
 }
 
@@ -565,7 +1192,7 @@ h6 {
 
 .disclaimer {
   position: absolute;
-  bottom: 64px;
+  bottom: 6px;
   left: 50%;
   transform: translateX(-50%);
   font-size: 11px;
@@ -576,8 +1203,8 @@ h6 {
 
 @media (max-width: 640px) {
   .chat-input-container {
-    width: 94%;
-    bottom: 72px;
+    width: calc(100% - 16px);
+    bottom: max(8px, env(safe-area-inset-bottom, 8px));
     padding: 8px 10px 8px 14px;
     gap: 8px;
     border-radius: 20px;
@@ -593,11 +1220,64 @@ h6 {
   }
 
   .disclaimer {
-    bottom: 54px;
-    font-size: 10px;
-    max-width: 90%;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    display: none;
+  }
+
+  /* Modals on mobile: Bottom sheet style with safe area */
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal-content {
+    width: 100%;
+    max-width: 100%;
+    max-height: 92dvh;
+    border-radius: 16px 16px 0 0;
+    margin: 0;
+  }
+
+  .modal-header {
+    padding: 16px 18px;
+  }
+
+  .modal-tabs {
+    padding: 0 16px;
+  }
+
+  .tab {
+    padding: 12px 14px;
+    font-size: 13.5px;
+  }
+
+  .modal-body {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .dropzone {
+    padding: 24px 14px;
+    gap: 10px;
+  }
+
+  .dropzone h3 {
+    font-size: 14px;
+  }
+
+  .file-item {
+    padding: 10px 12px;
+  }
+
+  .file-name {
+    max-width: 160px;
+    font-size: 13px;
+  }
+
+  .modal-footer {
+    padding: 12px 16px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom, 12px));
+    flex-wrap: wrap;
+    gap: 8px;
   }
 }
 
@@ -632,7 +1312,7 @@ h6 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   border: 1px solid var(--border-default);
   color: var(--text-primary);
@@ -743,7 +1423,7 @@ h6 {
   align-items: center;
   justify-content: center;
   background-color: var(--surface-secondary, var(--bg-button));
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
   border: 1px solid var(--border-default);
   position: relative;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
@@ -784,7 +1464,7 @@ h6 {
   border: 1px solid var(--border-default);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
 }
 
 .btn-add-note:hover {
@@ -869,7 +1549,7 @@ h6 {
   padding: 40px 20px;
   text-align: center;
   background: var(--bg-main);
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
   transition: all 0.2s;
   display: flex;
   flex-direction: column;
@@ -1097,6 +1777,8 @@ h6 {
   color: var(--text-primary);
   line-height: 1.6;
   font-size: 15px;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .markdown-body h1 {
@@ -1170,12 +1852,15 @@ h6 {
 }
 
 .markdown-body table {
+  display: block;
   width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   border-collapse: collapse;
   margin-bottom: 24px;
   background: var(--surface-secondary, var(--bg-button));
   border-radius: 8px;
-  overflow: hidden;
   border: 1px solid var(--border-default);
 }
 
@@ -1210,7 +1895,9 @@ h6 {
   background: var(--surface-input, var(--bg-main));
   padding: 16px;
   border-radius: 8px;
+  max-width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   margin-bottom: 16px;
   border: 1px solid var(--border-default);
 }
@@ -1226,4 +1913,125 @@ h6 {
 .markdown-body strong {
   font-weight: 600;
   color: var(--text-primary);
+}
+
+/* ============================================================
+   BFDI PEN CUSTOM CURSOR SYSTEM
+   Asset: Battle for Dream Island (BFDI) Pen Cursor & Pointer
+   Reference: https://custom-cursor.com/en/collection/battle-for-dream-island/bfdi-pen
+   Artwork: Jacknjellify / Battle for Dream Island
+   Locally hosted under /cursors/ with pixel-perfect hotspots:
+   - Angled Pen cursor: (3, 0)
+   - Upright Pen pointer: (2, 0)
+   ============================================================ */
+
+/* 1. Global Application: All views, containers, panels, modals */
+html,
+body,
+#root,
+.app-container,
+.ss-shell,
+.ss-shell__main,
+.ss-layout-split,
+.workspace-container,
+.main-content,
+.dashboard-container,
+.sidebar,
+.panel,
+.chat-container,
+.sources-panel,
+.studio-panel,
+.modal-overlay,
+.modal-content,
+.dropdown-menu,
+.dropdown-content,
+.navbar-dropdown {
+  cursor: var(--cursor-default);
+}
+
+/* 2. Interactive Elements: BFDI Pen Upright Pointer */
+a,
+button,
+[role="button"],
+[role="tab"],
+[role="menuitem"],
+[role="switch"],
+[role="checkbox"],
+[role="radio"],
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+input[type="checkbox"],
+input[type="radio"],
+select,
+summary,
+label[for],
+.clickable,
+[clickable],
+.btn,
+.icon-btn,
+.header-btn,
+.nav-tab,
+.theme-btn,
+.source-item,
+.studio-tool-card,
+.note-card,
+.flashcard,
+.option-btn,
+.history-item,
+.mini-rail-btn,
+.navbar-brand-logo-btn,
+.navbar-btn-create,
+.navbar-btn-share,
+.navbar-icon-btn,
+.navbar-dropdown-item,
+.navbar-avatar-btn,
+.btn-send,
+.btn-add-note,
+.dropzone,
+.sd-notebook-card,
+.tp-card,
+.tp-quick-apply-btn,
+[style*="cursor: pointer"],
+[style*="cursor:pointer"],
+[style*="cursor: 'pointer'"],
+[style*="cursor: \"pointer\""] {
+  cursor: var(--cursor-pointer) !important;
+}
+
+/* 3. Text inputs, textareas & editable zones: Native text caret */
+input:not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="color"]),
+textarea,
+[contenteditable="true"],
+.text-selectable {
+  cursor: text !important;
+}
+
+/* 4. Disabled states: Native not-allowed */
+:disabled,
+[disabled],
+[aria-disabled="true"],
+.disabled,
+[style*="cursor: not-allowed"],
+[style*="cursor:not-allowed"] {
+  cursor: not-allowed !important;
+}
+
+/* 5. Draggable interactions: Grab / Grabbing */
+[draggable="true"],
+.draggable {
+  cursor: grab !important;
+}
+[draggable="true"]:active,
+.draggable:active {
+  cursor: grabbing !important;
+}
+
+/* 6. Touch devices: Preserve native touch behavior */
+@media (hover: none) and (pointer: coarse) {
+  *,
+  *::before,
+  *::after {
+    cursor: auto !important;
+  }
 }

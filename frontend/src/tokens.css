@@ -363,5 +363,18 @@
   --particle-color-4:       rgb(236, 72, 153);
   --particle-opacity:       0.55;
   --particle-glow:          0.22;
+
+  /* ──────────────────────────────────────────
+     CUSTOM CURSOR TOKENS (BFDI Pen)
+     Reference: https://custom-cursor.com/en/collection/battle-for-dream-island/bfdi-pen
+     Artwork: Jacknjellify / Battle for Dream Island
+     Locally hosted in public/cursors/
+     Hotspots aligned precisely to the pen cap tip:
+     - Default angled pen: x=3, y=0
+     - Upright pointer pen: x=2, y=0
+     ────────────────────────────────────────── */
+  --cursor-default: url('/cursors/bfdi-pen.png') 3 0, url('/cursors/bfdi-pen.cur') 3 0, auto;
+  --cursor-pointer: url('/cursors/bfdi-pen-pointer.png') 2 0, url('/cursors/bfdi-pen-pointer.cur') 2 0, pointer;
 }
+
 

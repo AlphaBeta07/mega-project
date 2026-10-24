@@ -1065,10 +1065,11 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
           isOpen={isThemePickerOpen}
           onClose={() => setIsThemePickerOpen(false)}
           onThemeSaved={(savedThemeId) => {
-            if (profile) {
-              const updated = { ...profile, theme_preference: savedThemeId };
-              setProfile(updated);
-              onProfileUpdated?.(updated);
+            const currentP = profile || user;
+            if (currentP) {
+              const updated = { ...currentP, theme_preference: savedThemeId };
+              setProfile(updated as StudentProfile);
+              onProfileUpdated?.(updated as StudentProfile);
             }
           }}
         />

@@ -77,7 +77,7 @@
   border-radius: 9999px;
   font-size: 0.85rem;
   font-weight: 600;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -98,7 +98,7 @@
   border-radius: 9999px;
   font-size: 0.85rem;
   font-weight: 600;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -183,7 +183,7 @@
   padding: 16px 36px;
   border-radius: 9999px;
   border: none;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
   display: inline-flex;
   align-items: center;
   gap: 12px;
@@ -264,7 +264,7 @@
 /* ── Notebooks Grid ─────────────────────────────────────────── */
 .sd-notebooks-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
   gap: 20px;
 }
 
@@ -278,7 +278,7 @@
   justify-content: space-between;
   gap: 16px;
   transition: all 0.25s ease;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
 }
 
 .sd-notebook-card:hover {
@@ -302,6 +302,7 @@
   font-weight: 700;
   color: var(--color-text-primary, #FFFFFF);
   margin-top: 6px;
+  word-break: break-word;
 }
 
 .sd-notebook-meta {
@@ -323,4 +324,115 @@
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+/* ── Responsive Behavior ─────────────────────────────────────── */
+@media (max-width: 1023px) {
+  .sd-container {
+    padding: 24px 20px 100px 20px;
+  }
+  .sd-header {
+    padding: 20px 24px;
+  }
+}
+
+@media (max-width: 767px) {
+  .sd-container {
+    padding: 20px 14px 100px 14px;
+  }
+
+  .sd-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 18px;
+    border-radius: 16px;
+  }
+
+  .sd-user-info {
+    width: 100%;
+    gap: 12px;
+  }
+
+  .sd-welcome-title {
+    font-size: 1.25rem;
+  }
+
+  .sd-welcome-sub {
+    font-size: 0.8rem;
+    line-height: 1.4;
+  }
+
+  .sd-header-actions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .sd-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .sd-stat-card {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .sd-stat-value {
+    font-size: 1.25rem;
+  }
+
+  .sd-stat-label {
+    font-size: 0.75rem;
+  }
+
+  .sd-notebooks-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .sd-section-title {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .sd-section-title > div {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .sd-container {
+    padding: 14px 10px 80px 10px;
+  }
+
+  .sd-avatar {
+    width: 44px;
+    height: 44px;
+    font-size: 1.1rem;
+  }
+
+  .sd-stats-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .sd-stat-icon {
+    width: 38px;
+    height: 38px;
+  }
+
+  .sd-notebook-card {
+    padding: 16px 14px;
+  }
+
+  .sd-notebook-title {
+    font-size: 1rem;
+  }
 }

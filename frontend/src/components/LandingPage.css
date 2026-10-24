@@ -35,7 +35,7 @@
 }
 
 .lp-hero__title {
-  font-size: 2.75rem;
+  font-size: clamp(1.75rem, 5.5vw, 2.75rem);
   font-weight: 800;
   line-height: 1.2;
   letter-spacing: -0.02em;
@@ -76,7 +76,7 @@
   padding: 14px 36px;
   border-radius: 9999px;
   border: none;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
   box-shadow: 
     0 0 30px rgba(245, 158, 11, 0.45),
     0 4px 15px rgba(245, 158, 11, 0.3);
@@ -148,7 +148,7 @@
   padding: 7px 14px;
   font-size: 0.8125rem;
   font-weight: 600;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
   outline: none;
   transition: all 0.2s ease;
   appearance: none;
@@ -173,7 +173,7 @@
 /* Search input */
 .lp-search-box {
   position: relative;
-  min-width: 260px;
+  min-width: 0;
   flex: 1;
   max-width: 380px;
 }
@@ -242,7 +242,7 @@
 /* ── Notes Grid ─────────────────────────────────────────── */
 .lp-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
   gap: 20px;
 }
 
@@ -346,7 +346,7 @@
   color: #F59E0B;
   font-size: 0.875rem;
   font-weight: 700;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -377,3 +377,59 @@
   color: #E5E7EB;
   margin-top: 12px;
 }
+
+/* ── Responsive Behavior ─────────────────────────────────────── */
+@media (max-width: 768px) {
+  .lp-container {
+    padding: 24px 16px 90px 16px;
+  }
+
+  .lp-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .lp-filter-bar__filters {
+    width: 100%;
+    gap: 8px;
+  }
+
+  .lp-filter-group {
+    flex: 1;
+    min-width: 110px;
+  }
+
+  .lp-filter-select {
+    width: 100%;
+  }
+
+  .lp-search-box {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .lp-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .lp-container {
+    padding: 16px 12px 80px 12px;
+  }
+
+  .lp-hero__cta-btn {
+    padding: 12px 24px;
+    font-size: 0.95rem;
+    width: 100%;
+    max-width: 280px;
+  }
+
+  .lp-card {
+    padding: 18px 14px;
+  }
+}
+

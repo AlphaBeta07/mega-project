@@ -58,7 +58,7 @@ export const AudioOverviewPage: React.FC<AudioOverviewPageProps> = ({ backendUrl
   };
 
   return (
-    <div style={{ padding: '24px', maxWidth: '800px', margin: '0 auto', height: '100%', overflowY: 'auto' }}>
+    <div className="feature-page-container" style={{ padding: '24px', maxWidth: '800px', margin: '0 auto', height: '100%', overflowY: 'auto' }}>
       <button
         onClick={onBack}
         style={{
@@ -92,11 +92,11 @@ export const AudioOverviewPage: React.FC<AudioOverviewPageProps> = ({ backendUrl
       </div>
 
       {!audioUrl && !loading && (
-        <div style={{ backgroundColor: 'var(--bg-panel)', padding: '32px', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ backgroundColor: 'var(--bg-panel)', padding: '24px', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {/* Format Selection */}
           <div>
             <label style={{ display: 'block', fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>Podcast Format</label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: '16px' }}>
               {formats.map(f => (
                 <div 
                   key={f.id}
@@ -120,7 +120,7 @@ export const AudioOverviewPage: React.FC<AudioOverviewPageProps> = ({ backendUrl
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '24px' }}>
+          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
             {/* Language */}
             <div style={{ flex: 1 }}>
               <label style={{ display: 'block', fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px' }}>Language</label>

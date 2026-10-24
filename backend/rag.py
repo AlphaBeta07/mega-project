@@ -590,7 +590,7 @@ def clean_markdown_headings(text: str) -> str:
     text = re.sub(r"^[•●]\s+", r"- ", text, flags=re.MULTILINE)
     return text
 
-async def chat_with_context(query: str, history: list = None, selected_source_ids: list = None, response_language: str = "English"):
+async def chat_with_context(query: str, history: list = None, selected_source_ids: list = None, response_language: str = "English", system_instruction: str = None):
     if history is None: history = []
     
     where_clause = None
@@ -601,10 +601,11 @@ async def chat_with_context(query: str, history: list = None, selected_source_id
             where_clause = {"file_id": {"$in": selected_source_ids}}
             
     # If a filter is provided, pass it to where
+    retrieval_query = f"{query} {system_instruction}" if system_instruction else query
     if where_clause:
-        results = collection.query(query_texts=[query], n_results=4, where=where_clause)
+        results = collection.query(query_texts=[retrieval_query], n_results=4, where=where_clause)
     else:
-        results = collection.query(query_texts=[query], n_results=4)
+        results = collection.query(query_texts=[retrieval_query], n_results=4)
         
     documents = results.get("documents", [[]])[0]
     metadatas = results.get("metadatas", [[]])[0]
@@ -626,6 +627,8 @@ async def chat_with_context(query: str, history: list = None, selected_source_id
         f"IMPORTANT: You must respond in {response_language}.\n\n"
         f"Context:\n{context}"
     )
+    if system_instruction:
+        system_prompt += f"\n\nSPECIALIZED TASK INSTRUCTIONS:\n{system_instruction}\nFollow these instructions precisely to format and structure your output."
     
     messages = [{"role": "system", "content": system_prompt}]
     for msg in history:

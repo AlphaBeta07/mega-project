@@ -47,7 +47,7 @@
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.08);
   color: #9CA3AF;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
   width: 32px;
   height: 32px;
   border-radius: 50%;
@@ -280,7 +280,7 @@
   background-position: right 12px center;
   background-size: 14px;
   padding-right: 32px;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
 }
 
 .auth-select option {
@@ -304,7 +304,7 @@
   background: none;
   border: none;
   color: #64748B;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
   padding: 4px;
   display: flex;
   align-items: center;
@@ -320,7 +320,7 @@
   border: none;
   color: #60A5FA;
   font-size: 0.775rem;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
   text-decoration: underline;
   padding: 0;
 }
@@ -345,7 +345,7 @@
   font-size: 0.785rem;
   color: #94A3B8;
   line-height: 1.45;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
 }
 
 .auth-checkbox-label input[type="checkbox"] {
@@ -353,7 +353,7 @@
   height: 16px;
   margin-top: 2px;
   accent-color: #F59E0B;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
 }
 
 .auth-terms-link {
@@ -370,7 +370,7 @@
   padding: 12px 20px;
   border-radius: 10px;
   border: none;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -410,7 +410,7 @@
   font-size: 0.875rem;
   padding: 11px 18px;
   border-radius: 10px;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -438,7 +438,7 @@
   border: none;
   color: #FBBF24;
   font-weight: 700;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
   text-decoration: underline;
   padding: 0;
   margin-left: 4px;
@@ -478,7 +478,7 @@
   font-size: 0.85rem;
   padding: 10px 16px;
   border-radius: 10px;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
   width: 100%;
   display: flex;
   align-items: center;
@@ -494,10 +494,16 @@
 
 /* ── Responsive Behavior ── */
 @media (max-width: 640px) {
+  .auth-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
   .auth-modal {
     padding: 24px 18px;
-    border-radius: 16px;
+    border-radius: 18px 18px 0 0;
     max-height: 94vh;
+    border-bottom: none;
   }
 
   .auth-field-grid {
@@ -506,5 +512,11 @@
 
   .auth-field-triplet {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 380px) {
+  .auth-modal {
+    padding: 20px 14px;
   }
 }

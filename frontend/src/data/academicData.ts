@@ -9,14 +9,14 @@ export interface DegreeOption {
 }
 
 export const DEGREE_OPTIONS: DegreeOption[] = [
-  { label: 'B.Tech / B.E. (Bachelor of Technology / Engineering)', value: 'B.Tech / B.E.', standardDurationYears: 4 },
-  { label: 'B.Sc. (Bachelor of Science)', value: 'B.Sc.', standardDurationYears: 3 },
-  { label: 'BCA (Bachelor of Computer Applications)', value: 'BCA', standardDurationYears: 3 },
-  { label: 'BBA (Bachelor of Business Administration)', value: 'BBA', standardDurationYears: 3 },
-  { label: 'B.Com. (Bachelor of Commerce)', value: 'B.Com.', standardDurationYears: 3 },
-  { label: 'M.Tech / M.E. (Master of Technology / Engineering)', value: 'M.Tech / M.E.', standardDurationYears: 2 },
-  { label: 'M.Sc. (Master of Science)', value: 'M.Sc.', standardDurationYears: 2 },
-  { label: 'MCA (Master of Computer Applications)', value: 'MCA', standardDurationYears: 2 },
+  { label: 'B.Tech / B.E.', value: 'B.Tech / B.E.', standardDurationYears: 4 },
+  { label: 'B.Sc.', value: 'B.Sc.', standardDurationYears: 3 },
+  { label: 'BCA ', value: 'BCA', standardDurationYears: 3 },
+  { label: 'BBA', value: 'BBA', standardDurationYears: 3 },
+  { label: 'B.Com.', value: 'B.Com.', standardDurationYears: 3 },
+  { label: 'M.Tech / M.E.', value: 'M.Tech / M.E.', standardDurationYears: 2 },
+  { label: 'M.Sc.', value: 'M.Sc.', standardDurationYears: 2 },
+  { label: 'MCA ', value: 'MCA', standardDurationYears: 2 },
   { label: 'Diploma in Engineering / Technology', value: 'Diploma', standardDurationYears: 3 },
   { label: 'Other Degree / Program', value: 'Other', standardDurationYears: 4 },
 ];
@@ -122,7 +122,7 @@ export const formatStudentProgramBadge = (
   const b = branch === 'Other Branch / Department' || branch === 'Other'
     ? (customBranch || 'Specialization')
     : (branch ? branch.replace(/\s*\(.*?\)\s*/g, '') : '');
-  
+
   if (b) {
     return `${d} • ${b}`;
   }

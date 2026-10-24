@@ -180,6 +180,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             semester: semester,
             graduation_year: graduationYear,
             roll_number: rollNumber.trim() || null,
+            theme_preference: (typeof window !== 'undefined' ? localStorage.getItem('studysnap_theme') : null) || 'dark-modern',
             email_verified: Boolean(authRes.user.email_confirmed_at),
           };
           localStorage.setItem('studysnap_user', JSON.stringify(studentProfile));
@@ -228,6 +229,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           academic_year: academicYear,
           semester,
           graduation_year: graduationYear,
+          theme_preference: (typeof window !== 'undefined' ? localStorage.getItem('studysnap_theme') : null) || 'dark-modern',
         };
         localStorage.setItem('studysnap_user', JSON.stringify(userObj));
         onLoginSuccess(userObj);
@@ -248,6 +250,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         academic_year: academicYear,
         semester,
         graduation_year: graduationYear,
+        theme_preference: (typeof window !== 'undefined' ? localStorage.getItem('studysnap_theme') : null) || 'dark-modern',
       };
       localStorage.setItem('studysnap_user', JSON.stringify(offlineUser));
       onLoginSuccess(offlineUser);
@@ -289,6 +292,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             academic_year: data.user.user_metadata?.academic_year || 'Third Year',
             semester: data.user.user_metadata?.semester || 'Semester 5',
             graduation_year: data.user.user_metadata?.graduation_year || '2026',
+            theme_preference: (typeof window !== 'undefined' ? localStorage.getItem('studysnap_theme') : null) || 'dark-modern',
             email_verified: Boolean(data.user.email_confirmed_at),
           };
           localStorage.setItem('studysnap_user', JSON.stringify(userObj));
@@ -321,10 +325,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       const data = await res.json();
       if (res.ok && data.success && data.data?.token) {
         setAuthToken(data.data.token);
-        const userObj = data.data.user || {
+        const currentSavedTheme = typeof window !== 'undefined' ? localStorage.getItem('studysnap_theme') : null;
+        const userObj = data.data.user ? {
+          ...data.data.user,
+          theme_preference: data.data.user.theme_preference || currentSavedTheme || 'dark-modern'
+        } : {
           name: email.split('@')[0],
           email,
-          college: 'DKTE'
+          college: 'DKTE',
+          theme_preference: currentSavedTheme || 'dark-modern'
         };
         localStorage.setItem('studysnap_user', JSON.stringify(userObj));
         onLoginSuccess(userObj);
@@ -333,10 +342,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         setErrorMsg(data.message || 'Invalid email or password.');
       }
     } catch {
+      const currentSavedTheme = typeof window !== 'undefined' ? localStorage.getItem('studysnap_theme') : null;
       const fallbackUser = {
         name: email.split('@')[0] || 'Student',
         email,
-        college: 'DKTE'
+        college: 'DKTE',
+        theme_preference: currentSavedTheme || 'dark-modern'
       };
       localStorage.setItem('studysnap_user', JSON.stringify(fallbackUser));
       onLoginSuccess(fallbackUser);
@@ -358,7 +369,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       const data = await res.json();
       if (res.ok && data.success && data.data?.token) {
         setAuthToken(data.data.token);
-        const userObj = data.data.user || {
+        const currentSavedTheme = typeof window !== 'undefined' ? localStorage.getItem('studysnap_theme') : null;
+        const userObj = data.data.user ? {
+          ...data.data.user,
+          theme_preference: data.data.user.theme_preference || currentSavedTheme || 'dark-modern'
+        } : {
           id: 'demo-student-id',
           name: 'Rohan Sharma',
           full_name: 'Rohan Sharma',
@@ -371,6 +386,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           semester: 'Semester 5',
           graduation_year: '2026',
           roll_number: '22CS1049',
+          theme_preference: currentSavedTheme || 'dark-modern',
           email_verified: true,
         };
         localStorage.setItem('studysnap_user', JSON.stringify(userObj));
@@ -380,6 +396,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         throw new Error(data.message || 'Demo login failed');
       }
     } catch {
+      const currentSavedTheme = typeof window !== 'undefined' ? localStorage.getItem('studysnap_theme') : null;
       const demoUser = {
         id: 'demo-student-id',
         name: 'Rohan Sharma',
@@ -393,6 +410,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         semester: 'Semester 5',
         graduation_year: '2026',
         roll_number: '22CS1049',
+        theme_preference: currentSavedTheme || 'dark-modern',
         email_verified: true,
       };
       localStorage.setItem('studysnap_user', JSON.stringify(demoUser));

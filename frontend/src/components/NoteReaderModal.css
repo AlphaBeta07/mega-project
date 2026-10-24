@@ -64,7 +64,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
   transition: all 0.2s ease;
   flex-shrink: 0;
 }
@@ -159,3 +159,33 @@
   from { opacity: 0; transform: scale(0.98); }
   to { opacity: 1; transform: scale(1); }
 }
+
+/* ── Responsive Behavior ─────────────────────────────────────── */
+@media (max-width: 640px) {
+  .nr-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .nr-modal {
+    max-width: 100%;
+    height: 94dvh;
+    max-height: 94dvh;
+    border-radius: 18px 18px 0 0;
+    border-bottom: none;
+  }
+
+  .nr-header {
+    padding: 16px 18px;
+  }
+
+  .nr-title {
+    font-size: 1.15rem;
+  }
+
+  .nr-body {
+    padding: 16px;
+    gap: 16px;
+  }
+}
+

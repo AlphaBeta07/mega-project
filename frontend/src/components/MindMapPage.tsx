@@ -49,9 +49,9 @@ export const MindMapPage: React.FC<MindMapPageProps> = ({ backendUrl, selectedSo
   };
 
   return (
-    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', height: '100%', maxWidth: '1200px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+    <div className="feature-page-container" style={{ padding: 'clamp(12px, 3vw, 24px)', display: 'flex', flexDirection: 'column', height: '100%', maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: '20px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
           <button
             onClick={onBack}
             style={{
@@ -74,7 +74,7 @@ export const MindMapPage: React.FC<MindMapPageProps> = ({ backendUrl, selectedSo
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
              <Network size={20} style={{ color: '#e5c9b3' }} />
-             <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>Mind Map Explorer</h2>
+             <h2 style={{ margin: 0, fontSize: 'clamp(16px, 4vw, 18px)', fontWeight: 600 }}>Mind Map Explorer</h2>
           </div>
         </div>
 

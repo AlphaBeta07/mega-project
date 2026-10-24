@@ -107,7 +107,7 @@ export const FlashcardsPage: React.FC<FlashcardsPageProps> = ({ backendUrl, sele
   const isCompleted = data && currentIndex >= data.flashcards.length - 1 && (knownCount + unknownCount >= data.flashcards.length);
 
   return (
-    <div style={{ padding: '24px', maxWidth: '800px', margin: '0 auto', height: '100%', overflowY: 'auto' }}>
+    <div className="feature-page-container" style={{ padding: 'clamp(14px, 3.5vw, 24px)', maxWidth: '800px', margin: '0 auto', height: '100%', overflowY: 'auto' }}>
       <button
         onClick={onBack}
         style={{
@@ -122,7 +122,7 @@ export const FlashcardsPage: React.FC<FlashcardsPageProps> = ({ backendUrl, sele
           display: 'inline-flex',
           alignItems: 'center',
           gap: '8px',
-          marginBottom: '24px',
+          marginBottom: '20px',
           transition: 'all 0.2s'
         }}
       >
@@ -131,12 +131,12 @@ export const FlashcardsPage: React.FC<FlashcardsPageProps> = ({ backendUrl, sele
       </button>
 
       {!data && !loading && (
-        <div style={{ textAlign: 'center', marginTop: '60px' }}>
+        <div style={{ textAlign: 'center', marginTop: 'clamp(30px, 8vh, 60px)' }}>
           <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(229, 176, 163, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
              <BrainCircuit size={40} style={{ color: 'var(--card-flashcards-accent, #e5b0a3)' }} />
           </div>
-          <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '12px', color: 'var(--text-primary)' }}>Generate Flashcards</h2>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '32px' }}>Extract key terms and definitions for quick memorization.</p>
+          <h2 style={{ fontSize: 'clamp(20px, 5vw, 24px)', fontWeight: 600, marginBottom: '12px', color: 'var(--text-primary)' }}>Generate Flashcards</h2>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '32px', fontSize: '14px' }}>Extract key terms and definitions for quick memorization.</p>
           <button 
             onClick={generateFlashcards}
             style={{ padding: '12px 24px', borderRadius: '8px', border: 'none', backgroundColor: 'var(--button-primary-bg, var(--accent-color))', color: 'var(--button-primary-text, #000)', fontSize: '15px', fontWeight: 600, cursor: 'pointer' }}
@@ -148,18 +148,18 @@ export const FlashcardsPage: React.FC<FlashcardsPageProps> = ({ backendUrl, sele
       )}
 
       {loading && (
-        <div style={{ textAlign: 'center', marginTop: '80px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+        <div style={{ textAlign: 'center', marginTop: 'clamp(40px, 10vh, 80px)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
           <Loader2 size={40} className="animate-spin" style={{ color: 'var(--accent-color)' }} />
-          <h3 style={{ fontSize: '18px', fontWeight: 500 }}>Extracting key terms...</h3>
+          <h3 style={{ fontSize: 'clamp(15px, 4vw, 18px)', fontWeight: 500 }}>Extracting key terms...</h3>
         </div>
       )}
 
       {data && !isCompleted && !loading && (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-            <h2 style={{ fontSize: '20px', fontWeight: 600, margin: 0 }}>{data.title}</h2>
+          <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '20px' }}>
+            <h2 style={{ fontSize: 'clamp(17px, 4vw, 20px)', fontWeight: 600, margin: 0 }}>{data.title}</h2>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+              <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
                 {currentIndex + 1} / {data.flashcards.length}
               </span>
               <button onClick={shuffleCards} className="icon-btn" title="Shuffle"><Shuffle size={18} /></button>
@@ -170,10 +170,10 @@ export const FlashcardsPage: React.FC<FlashcardsPageProps> = ({ backendUrl, sele
             onClick={handleFlip}
             style={{ 
               width: '100%', 
-              height: '350px', 
+              height: 'clamp(240px, 45vh, 340px)', 
               perspective: '1000px',
               cursor: 'pointer',
-              marginBottom: '32px'
+              marginBottom: '24px'
             }}
           >
             <motion.div
@@ -200,11 +200,12 @@ export const FlashcardsPage: React.FC<FlashcardsPageProps> = ({ backendUrl, sele
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: '32px',
-                textAlign: 'center'
+                padding: 'clamp(18px, 4vw, 32px)',
+                textAlign: 'center',
+                overflowY: 'auto'
               }}>
-                <span style={{ position: 'absolute', top: '16px', left: '16px', fontSize: '12px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px' }}>Front</span>
-                <div style={{ fontSize: '24px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                <span style={{ position: 'absolute', top: '14px', left: '16px', fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px' }}>Front</span>
+                <div style={{ fontSize: 'clamp(18px, 4.5vw, 24px)', fontWeight: 600, color: 'var(--text-primary)', wordBreak: 'break-word' }}>
                   <ReactMarkdown>{data.flashcards[currentIndex].front}</ReactMarkdown>
                 </div>
               </div>
@@ -222,30 +223,31 @@ export const FlashcardsPage: React.FC<FlashcardsPageProps> = ({ backendUrl, sele
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: '32px',
+                padding: 'clamp(18px, 4vw, 32px)',
                 textAlign: 'center',
-                transform: 'rotateX(180deg)'
+                transform: 'rotateX(180deg)',
+                overflowY: 'auto'
               }}>
-                <span style={{ position: 'absolute', top: '16px', left: '16px', fontSize: '12px', color: 'var(--accent-primary, var(--accent-color))', textTransform: 'uppercase', letterSpacing: '1px' }}>Back</span>
-                <div style={{ fontSize: '20px', lineHeight: '1.6', color: 'var(--text-primary)' }}>
+                <span style={{ position: 'absolute', top: '14px', left: '16px', fontSize: '11px', color: 'var(--accent-primary, var(--accent-color))', textTransform: 'uppercase', letterSpacing: '1px' }}>Back</span>
+                <div style={{ fontSize: 'clamp(15px, 3.8vw, 19px)', lineHeight: '1.6', color: 'var(--text-primary)', wordBreak: 'break-word' }}>
                   <ReactMarkdown>{data.flashcards[currentIndex].back}</ReactMarkdown>
                 </div>
               </div>
             </motion.div>
           </div>
 
-          <div style={{ display: 'flex', gap: '16px', width: '100%' }}>
+          <div style={{ display: 'flex', gap: '12px', width: '100%', flexWrap: 'wrap' }}>
             <button 
               onClick={() => handleNext(false)}
-              style={{ flex: 1, padding: '16px', borderRadius: '12px', border: '1px solid #ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', fontSize: '16px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+              style={{ flex: 1, minWidth: '130px', padding: 'clamp(12px, 3vw, 16px)', borderRadius: '12px', border: '1px solid #ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', fontSize: 'clamp(14px, 3.5vw, 16px)', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
             >
-              <XCircle size={20} /> Still Learning
+              <XCircle size={18} /> Still Learning
             </button>
             <button 
               onClick={() => handleNext(true)}
-              style={{ flex: 1, padding: '16px', borderRadius: '12px', border: '1px solid #10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981', fontSize: '16px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+              style={{ flex: 1, minWidth: '130px', padding: 'clamp(12px, 3vw, 16px)', borderRadius: '12px', border: '1px solid #10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981', fontSize: 'clamp(14px, 3.5vw, 16px)', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
             >
-              <CheckCircle size={20} /> Got It
+              <CheckCircle size={18} /> Got It
             </button>
           </div>
         </div>

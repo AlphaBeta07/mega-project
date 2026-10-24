@@ -38,7 +38,7 @@ export default function InfographicModal({ isOpen, onClose, onGenerate }: Infogr
 
           <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', maxHeight: '70vh', overflowY: 'auto' }}>
             
-            <div style={{ display: 'flex', gap: '24px' }}>
+            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
               {/* Style */}
               <div style={{ flex: 1 }}>
                 <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '12px' }}>Visual Style</label>

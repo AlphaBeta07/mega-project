@@ -228,7 +228,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             )}
           </div>
           <div>
-            <h1 className="sd-welcome-title">Welcome back, {userName} 👋</h1>
+            <h1 className="sd-welcome-title">Welcome back, {userName}</h1>
             <p className="sd-welcome-sub">
               {userDegree} • {userBranch} • {userCollege}
             </p>
@@ -374,7 +374,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               ) : (
                 <>
                   <Plus size={16} />
-                  Create New Notebook
+                  New Notebook
                 </>
               )}
             </button>

@@ -48,7 +48,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onBack }) => {
     : 0;
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1000px', margin: '0 auto', height: '100%', overflowY: 'auto' }}>
+    <div className="feature-page-container" style={{ padding: 'clamp(14px, 3.5vw, 24px)', maxWidth: '1000px', margin: '0 auto', height: '100%', overflowY: 'auto' }}>
       <button
         onClick={onBack}
         style={{
@@ -63,7 +63,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onBack }) => {
           display: 'inline-flex',
           alignItems: 'center',
           gap: '8px',
-          marginBottom: '32px',
+          marginBottom: '24px',
           transition: 'all 0.2s'
         }}
       >
@@ -71,81 +71,81 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onBack }) => {
         Back to Studio
       </button>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
-        <div style={{ padding: '12px', borderRadius: '12px', backgroundColor: 'rgba(223, 201, 138, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <TrendingUp size={28} style={{ color: '#dfc98a' }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '24px', flexWrap: 'wrap' }}>
+        <div style={{ padding: '10px', borderRadius: '12px', backgroundColor: 'rgba(223, 201, 138, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <TrendingUp size={26} style={{ color: '#dfc98a' }} />
         </div>
         <div>
-          <h1 style={{ fontSize: '28px', fontWeight: 600, margin: '0 0 4px 0', color: 'var(--text-primary)' }}>Study Analytics</h1>
-          <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '15px' }}>Track your learning progress and activity.</p>
+          <h1 style={{ fontSize: 'clamp(20px, 5vw, 28px)', fontWeight: 600, margin: '0 0 4px 0', color: 'var(--text-primary)' }}>Study Analytics</h1>
+          <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '14px' }}>Track your learning progress and activity.</p>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', marginBottom: '32px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))', gap: '16px', marginBottom: '24px' }}>
         
         {/* Stat Card 1 */}
-        <div style={{ backgroundColor: 'var(--bg-panel)', padding: '24px', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ backgroundColor: 'var(--bg-panel)', padding: 'clamp(16px, 3vw, 24px)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ padding: '8px', borderRadius: '8px', backgroundColor: 'rgba(163, 216, 211, 0.1)' }}>
               <Target size={20} style={{ color: '#a3d8d3' }} />
             </div>
-            <span style={{ fontSize: '15px', fontWeight: 500, color: 'var(--text-secondary)' }}>Quiz Performance</span>
+            <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)' }}>Quiz Performance</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-            <span style={{ fontSize: '36px', fontWeight: 700, color: 'var(--text-primary)' }}>{averageScore}%</span>
-            <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>average score</span>
+            <span style={{ fontSize: 'clamp(28px, 6vw, 36px)', fontWeight: 700, color: 'var(--text-primary)' }}>{averageScore}%</span>
+            <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>average score</span>
           </div>
           <div style={{ width: '100%', height: '6px', backgroundColor: 'var(--bg-button)', borderRadius: '3px', overflow: 'hidden' }}>
             <div style={{ width: `${averageScore}%`, height: '100%', backgroundColor: '#a3d8d3', borderRadius: '3px' }} />
           </div>
-          <div style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between' }}>
-            <span>Quizzes Attempted: <strong>{stats.quizzesAttempted}</strong></span>
-            <span>Questions Answered: <strong>{stats.totalQuestionsAnswered}</strong></span>
+          <div style={{ fontSize: '12.5px', color: 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+            <span>Quizzes: <strong>{stats.quizzesAttempted}</strong></span>
+            <span>Answered: <strong>{stats.totalQuestionsAnswered}</strong></span>
           </div>
         </div>
 
         {/* Stat Card 2 */}
-        <div style={{ backgroundColor: 'var(--bg-panel)', padding: '24px', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ backgroundColor: 'var(--bg-panel)', padding: 'clamp(16px, 3vw, 24px)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ padding: '8px', borderRadius: '8px', backgroundColor: 'rgba(229, 176, 163, 0.1)' }}>
               <BrainCircuit size={20} style={{ color: '#e5b0a3' }} />
             </div>
-            <span style={{ fontSize: '15px', fontWeight: 500, color: 'var(--text-secondary)' }}>Memory Retention</span>
+            <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)' }}>Memory Retention</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-            <span style={{ fontSize: '36px', fontWeight: 700, color: 'var(--text-primary)' }}>{stats.flashcardsReviewed}</span>
-            <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>flashcards reviewed</span>
+            <span style={{ fontSize: 'clamp(28px, 6vw, 36px)', fontWeight: 700, color: 'var(--text-primary)' }}>{stats.flashcardsReviewed}</span>
+            <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>flashcards reviewed</span>
           </div>
-          <p style={{ margin: 'auto 0 0 0', fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+          <p style={{ margin: 'auto 0 0 0', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
             Regularly reviewing flashcards improves long-term retention. Try generating a new deck to test your knowledge!
           </p>
         </div>
 
         {/* Stat Card 3 */}
-        <div style={{ backgroundColor: 'var(--bg-panel)', padding: '24px', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ backgroundColor: 'var(--bg-panel)', padding: 'clamp(16px, 3vw, 24px)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ padding: '8px', borderRadius: '8px', backgroundColor: 'rgba(168, 199, 250, 0.1)' }}>
               <Activity size={20} style={{ color: '#a8c7fa' }} />
             </div>
-            <span style={{ fontSize: '15px', fontWeight: 500, color: 'var(--text-secondary)' }}>Study Sessions</span>
+            <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)' }}>Study Sessions</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-            <span style={{ fontSize: '36px', fontWeight: 700, color: 'var(--text-primary)' }}>{stats.sessions}</span>
-            <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>sessions</span>
+            <span style={{ fontSize: 'clamp(28px, 6vw, 36px)', fontWeight: 700, color: 'var(--text-primary)' }}>{stats.sessions}</span>
+            <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>sessions</span>
           </div>
-           <p style={{ margin: 'auto 0 0 0', fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+           <p style={{ margin: 'auto 0 0 0', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
             Consistent study sessions are key to success. Keep up the good work!
           </p>
         </div>
       </div>
 
-      <div style={{ backgroundColor: 'var(--bg-panel)', padding: '32px', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '24px' }}>
-        <div style={{ padding: '20px', borderRadius: '50%', backgroundColor: 'rgba(251, 191, 36, 0.1)' }}>
-          <Award size={48} style={{ color: '#FBBF24' }} />
+      <div style={{ backgroundColor: 'var(--bg-panel)', padding: 'clamp(18px, 3.5vw, 28px)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+        <div style={{ padding: '16px', borderRadius: '50%', backgroundColor: 'rgba(251, 191, 36, 0.1)', flexShrink: 0 }}>
+          <Award size={40} style={{ color: '#FBBF24' }} />
         </div>
-        <div>
-          <h3 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 8px 0' }}>Keep learning!</h3>
-          <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '15px', lineHeight: 1.5 }}>
+        <div style={{ flex: 1, minWidth: '220px' }}>
+          <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 6px 0' }}>Keep learning!</h3>
+          <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.5 }}>
             The more you interact with the AI tools, take quizzes, and review flashcards, the more your analytics will grow. Try adding more sources to unlock new insights.
           </p>
         </div>

@@ -102,7 +102,7 @@ export const QuizPage: React.FC<QuizPageProps> = ({ backendUrl, selectedSourceId
   };
 
   return (
-    <div style={{ padding: '24px', maxWidth: '800px', margin: '0 auto', height: '100%', overflowY: 'auto' }}>
+    <div className="feature-page-container" style={{ padding: 'clamp(14px, 3.5vw, 24px)', maxWidth: '800px', margin: '0 auto', height: '100%', overflowY: 'auto' }}>
       <button
         onClick={onBack}
         style={{
@@ -117,7 +117,7 @@ export const QuizPage: React.FC<QuizPageProps> = ({ backendUrl, selectedSourceId
           display: 'inline-flex',
           alignItems: 'center',
           gap: '8px',
-          marginBottom: '24px',
+          marginBottom: '20px',
           transition: 'all 0.2s'
         }}
       >
@@ -126,12 +126,12 @@ export const QuizPage: React.FC<QuizPageProps> = ({ backendUrl, selectedSourceId
       </button>
 
       {!quizData && !loading && (
-        <div style={{ textAlign: 'center', marginTop: '60px' }}>
+        <div style={{ textAlign: 'center', marginTop: 'clamp(30px, 8vh, 60px)' }}>
           <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(163, 216, 211, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
              <PlayCircle size={40} style={{ color: '#a3d8d3' }} />
           </div>
-          <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '12px' }}>Generate a Quiz</h2>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '32px' }}>Test your knowledge based on the selected study materials.</p>
+          <h2 style={{ fontSize: 'clamp(20px, 5vw, 24px)', fontWeight: 600, marginBottom: '12px' }}>Generate a Quiz</h2>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '32px', fontSize: '14px' }}>Test your knowledge based on the selected study materials.</p>
           <button 
             onClick={generateQuiz}
             style={{ padding: '12px 24px', borderRadius: '8px', border: 'none', backgroundColor: 'var(--accent-color)', color: '#000', fontSize: '15px', fontWeight: 600, cursor: 'pointer' }}
@@ -143,20 +143,20 @@ export const QuizPage: React.FC<QuizPageProps> = ({ backendUrl, selectedSourceId
       )}
 
       {loading && (
-        <div style={{ textAlign: 'center', marginTop: '80px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+        <div style={{ textAlign: 'center', marginTop: 'clamp(40px, 10vh, 80px)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
           <Loader2 size={40} className="animate-spin" style={{ color: 'var(--accent-color)' }} />
-          <h3 style={{ fontSize: '18px', fontWeight: 500 }}>Analyzing sources and generating questions...</h3>
+          <h3 style={{ fontSize: 'clamp(15px, 4vw, 18px)', fontWeight: 500 }}>Analyzing sources and generating questions...</h3>
         </div>
       )}
 
       {quizData && !showResults && !loading && (
-        <div style={{ backgroundColor: 'var(--bg-panel)', borderRadius: '16px', border: '1px solid var(--border-color)', padding: '32px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-            <h2 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{quizData.title}</h2>
-            <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)' }}>Question {currentQuestionIndex + 1} of {quizData.questions.length}</span>
+        <div style={{ backgroundColor: 'var(--bg-panel)', borderRadius: '16px', border: '1px solid var(--border-color)', padding: 'clamp(16px, 4vw, 32px)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '24px' }}>
+            <h2 style={{ fontSize: 'clamp(17px, 4vw, 20px)', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{quizData.title}</h2>
+            <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)' }}>Question {currentQuestionIndex + 1} of {quizData.questions.length}</span>
           </div>
           
-          <div style={{ fontSize: '18px', lineHeight: '1.6', marginBottom: '32px' }}>
+          <div style={{ fontSize: 'clamp(15px, 3.8vw, 18px)', lineHeight: '1.6', marginBottom: '28px', wordBreak: 'break-word' }}>
             <ReactMarkdown>{quizData.questions[currentQuestionIndex].question}</ReactMarkdown>
           </div>
 
@@ -186,30 +186,32 @@ export const QuizPage: React.FC<QuizPageProps> = ({ backendUrl, selectedSourceId
                   onClick={() => handleOptionClick(idx)}
                   disabled={isAnswered}
                   style={{
-                    padding: '16px 20px',
+                    padding: 'clamp(12px, 3vw, 16px) clamp(14px, 3.5vw, 20px)',
                     borderRadius: '12px',
                     border: `1px solid ${borderColor}`,
                     backgroundColor: bgColor,
                     color: 'var(--text-primary)',
-                    fontSize: '16px',
+                    fontSize: 'clamp(14px, 3.5vw, 16px)',
                     textAlign: 'left',
                     cursor: isAnswered ? 'default' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    transition: 'all 0.2s'
+                    gap: '12px',
+                    transition: 'all 0.2s',
+                    wordBreak: 'break-word'
                   }}
                 >
-                  <span>{opt}</span>
-                  {isAnswered && isCorrect && <CheckCircle size={20} color="#10b981" />}
-                  {isAnswered && isSelected && !isCorrect && <XCircle size={20} color="#ef4444" />}
+                  <span style={{ flex: 1 }}>{opt}</span>
+                  {isAnswered && isCorrect && <CheckCircle size={20} color="#10b981" style={{ flexShrink: 0 }} />}
+                  {isAnswered && isSelected && !isCorrect && <XCircle size={20} color="#ef4444" style={{ flexShrink: 0 }} />}
                 </button>
               );
             })}
           </div>
 
           {isAnswered && (
-            <div style={{ marginTop: '24px', padding: '16px', borderRadius: '12px', backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)' }}>
+            <div style={{ marginTop: '20px', padding: '16px', borderRadius: '12px', backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)' }}>
               <h4 style={{ margin: '0 0 8px 0', fontSize: '15px', color: 'var(--text-primary)' }}>Explanation</h4>
               <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                 {quizData.questions[currentQuestionIndex].explanation}
@@ -218,10 +220,10 @@ export const QuizPage: React.FC<QuizPageProps> = ({ backendUrl, selectedSourceId
           )}
 
           {isAnswered && (
-            <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'flex-end' }}>
+            <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
               <button 
                 onClick={handleNext}
-                style={{ padding: '12px 32px', borderRadius: '8px', border: 'none', backgroundColor: 'var(--accent-color)', color: '#000', fontSize: '15px', fontWeight: 600, cursor: 'pointer' }}
+                style={{ width: '100%', maxWidth: '240px', padding: '12px 28px', borderRadius: '8px', border: 'none', backgroundColor: 'var(--accent-color)', color: '#000', fontSize: '15px', fontWeight: 600, cursor: 'pointer' }}
               >
                 {currentQuestionIndex < quizData.questions.length - 1 ? 'Next Question' : 'View Results'}
               </button>

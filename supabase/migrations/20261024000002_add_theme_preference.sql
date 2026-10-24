@@ -1,12 +1,38 @@
 -- =============================================================================
--- Migration: Add theme_preference to public.profiles and update triggers
+-- Migration: Add theme_preference to public.profiles and enforce RLS
 -- StudySnap AI — VS Code-Inspired Color Theme System
 -- =============================================================================
 
+-- 1. Add theme_preference column to public.profiles with default 'dark-modern'
 ALTER TABLE IF EXISTS public.profiles 
 ADD COLUMN IF NOT EXISTS theme_preference TEXT DEFAULT 'dark-modern';
 
--- Update handle_new_user() trigger function to include theme_preference
+-- 2. Index for fast theme preference lookups
+CREATE INDEX IF NOT EXISTS idx_profiles_theme_preference ON public.profiles(theme_preference);
+
+-- 3. Enforce Row Level Security (RLS) on public.profiles
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+-- 4. RLS Policy: Users can only view their own profile
+DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
+CREATE POLICY "Users can view own profile"
+    ON public.profiles FOR SELECT
+    USING (auth.uid() = id);
+
+-- 5. RLS Policy: Users can only update their own profile and theme_preference
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
+CREATE POLICY "Users can update own profile"
+    ON public.profiles FOR UPDATE
+    USING (auth.uid() = id)
+    WITH CHECK (auth.uid() = id);
+
+-- 6. RLS Policy: Users can only insert their own profile
+DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
+CREATE POLICY "Users can insert own profile"
+    ON public.profiles FOR INSERT
+    WITH CHECK (auth.uid() = id);
+
+-- 7. Update handle_new_user() trigger function to preserve theme_preference on signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 DECLARE

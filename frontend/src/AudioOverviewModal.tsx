@@ -48,7 +48,7 @@ export default function AudioOverviewModal({ isOpen, onClose, onGenerate }: Audi
             {/* Format Selection */}
             <div>
               <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '12px' }}>Format</label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '12px' }}>
                 {formats.map(f => (
                   <div 
                     key={f.id}
@@ -72,7 +72,7 @@ export default function AudioOverviewModal({ isOpen, onClose, onGenerate }: Audi
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '24px' }}>
+            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
               {/* Language */}
               <div style={{ flex: 1 }}>
                 <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '12px' }}>Language</label>

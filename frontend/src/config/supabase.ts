@@ -290,7 +290,11 @@ export const fetchStudentProfile = async (userId: string): Promise<StudentProfil
       roll_number: data?.roll_number || meta.roll_number || null,
       avatar_path: data?.avatar_path || null,
       avatar_url: avatarUrl,
-      theme_preference: data?.theme_preference || meta.theme_preference || 'dark-modern',
+      theme_preference:
+        data?.theme_preference ||
+        meta.theme_preference ||
+        (typeof window !== 'undefined' ? localStorage.getItem('studysnap_theme') : null) ||
+        'dark-modern',
       created_at: data?.created_at,
       updated_at: data?.updated_at,
       email_verified: Boolean(authUser?.email_confirmed_at),
@@ -345,37 +349,122 @@ export const updateStudentProfile = async (
     .single();
 
   if (error) {
-    console.error('[StudySnap Supabase] Update profile error:', error.message);
-    throw error;
+    // If the error is that theme_preference column does not exist on profiles table,
+    // retry upsert without theme_preference so all other fields save,
+    // and rely on supabase.auth.updateUser to store theme_preference in auth metadata
+    if (error.message?.includes('theme_preference') || error.code === 'PGRST204') {
+      const { theme_preference: _, ...safePayload } = dbPayload;
+      const retry = await supabase
+        .from('profiles')
+        .upsert({
+          id: userId,
+          ...safePayload,
+        })
+        .select()
+        .single();
+      if (retry.error) {
+        console.error('[StudySnap Supabase] Update profile retry error:', retry.error.message);
+        throw retry.error;
+      }
+    } else {
+      console.error('[StudySnap Supabase] Update profile error:', error.message);
+      throw error;
+    }
   }
 
-  // Update Auth user metadata in parallel
+  // Update Auth user metadata in parallel (only include explicitly defined fields)
   try {
-    await supabase.auth.updateUser({
-      data: {
-        name: dbPayload.full_name,
-        full_name: dbPayload.full_name,
-        college: dbPayload.college_name,
-        college_name: dbPayload.college_name,
-        degree_program: dbPayload.degree_program,
-        custom_degree: dbPayload.custom_degree,
-        branch: dbPayload.branch,
-        custom_branch: dbPayload.custom_branch,
-        academic_year: dbPayload.academic_year,
-        semester: dbPayload.semester,
-        graduation_year: dbPayload.graduation_year,
-        roll_number: dbPayload.roll_number,
-        avatar_path: dbPayload.avatar_path,
-        avatar_url: dbPayload.avatar_url,
-        theme_preference: dbPayload.theme_preference,
-      },
-    });
+    const metaPayload: Record<string, any> = {};
+    if (dbPayload.full_name !== undefined) {
+      metaPayload.name = dbPayload.full_name;
+      metaPayload.full_name = dbPayload.full_name;
+    }
+    if (dbPayload.college_name !== undefined) {
+      metaPayload.college = dbPayload.college_name;
+      metaPayload.college_name = dbPayload.college_name;
+    }
+    if (dbPayload.degree_program !== undefined) metaPayload.degree_program = dbPayload.degree_program;
+    if (dbPayload.custom_degree !== undefined) metaPayload.custom_degree = dbPayload.custom_degree;
+    if (dbPayload.branch !== undefined) metaPayload.branch = dbPayload.branch;
+    if (dbPayload.custom_branch !== undefined) metaPayload.custom_branch = dbPayload.custom_branch;
+    if (dbPayload.academic_year !== undefined) metaPayload.academic_year = dbPayload.academic_year;
+    if (dbPayload.semester !== undefined) metaPayload.semester = dbPayload.semester;
+    if (dbPayload.graduation_year !== undefined) metaPayload.graduation_year = dbPayload.graduation_year;
+    if (dbPayload.roll_number !== undefined) metaPayload.roll_number = dbPayload.roll_number;
+    if (dbPayload.avatar_path !== undefined) metaPayload.avatar_path = dbPayload.avatar_path;
+    if (dbPayload.avatar_url !== undefined) metaPayload.avatar_url = dbPayload.avatar_url;
+    if (dbPayload.theme_preference !== undefined) metaPayload.theme_preference = dbPayload.theme_preference;
+
+    if (Object.keys(metaPayload).length > 0) {
+      await supabase.auth.updateUser({ data: metaPayload });
+    }
   } catch (metaErr) {
     console.warn('[StudySnap Supabase] Auth metadata sync warning:', metaErr);
   }
 
   const refreshed = await fetchStudentProfile(userId);
   return refreshed || { ...updates, id: userId } as StudentProfile;
+};
+
+/**
+ * Dedicated atomic function to persist student theme preference to Supabase PostgreSQL & Auth metadata.
+ * Complies with strict RLS: users can only update their own record (auth.uid() = id).
+ */
+export const updateStudentThemePreference = async (
+  userId: string,
+  themeId: string
+): Promise<{ success: boolean; error?: string }> => {
+  if (!supabase) {
+    return { success: false, error: 'Supabase client is not configured' };
+  }
+
+  const now = new Date().toISOString();
+
+  // 1. Update public.profiles table (RLS allows only auth.uid() = id)
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        theme_preference: themeId,
+        updated_at: now,
+      })
+      .eq('id', userId);
+
+    if (error) {
+      console.warn('[StudySnap Supabase] Profile table theme update note:', error.message);
+      // Fallback: try upserting id + theme_preference
+      const { error: upsertErr } = await supabase
+        .from('profiles')
+        .upsert({
+          id: userId,
+          theme_preference: themeId,
+          updated_at: now,
+        });
+
+      if (upsertErr) {
+        console.warn('[StudySnap Supabase] Profile table upsert note:', upsertErr.message);
+      }
+    }
+  } catch (err: any) {
+    console.warn('[StudySnap Supabase] DB theme preference update exception:', err);
+  }
+
+  // 2. Always synchronize to Supabase Auth metadata for seamless cross-device restored sessions
+  try {
+    const { error: authErr } = await supabase.auth.updateUser({
+      data: { theme_preference: themeId },
+    });
+
+    if (authErr) {
+      console.error('[StudySnap Supabase] Auth metadata theme update error:', authErr.message);
+      return { success: false, error: authErr.message };
+    }
+  } catch (err: any) {
+    console.error('[StudySnap Supabase] Auth metadata theme exception:', err);
+    return { success: false, error: err.message || 'Failed to update remote profile metadata' };
+  }
+
+  return { success: true };
 };
 
 /**

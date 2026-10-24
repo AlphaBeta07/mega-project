@@ -90,11 +90,6 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 cd frontend
 npm run dev
 
-# Terminal 4: ComfyUI (Image Generation)
-cd D:\ComfyUI
-.\venv\Scripts\Activate.ps1
-python main.py
-```
 
 ## Verify
 

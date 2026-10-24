@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.118.0",
     "@types/katex": "^0.16.8",
     "@xyflow/react": "^12.10.2",
     "framer-motion": "^12.38.0",

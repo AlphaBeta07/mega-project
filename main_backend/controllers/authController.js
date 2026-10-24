@@ -1,4 +1,5 @@
-const User = require('../models/User');
+const bcrypt = require('bcryptjs');
+const storageService = require('../services/storageService');
 const generateToken = require('../utils/generateToken');
 const { successResponse, errorResponse } = require('../utils/apiResponse');
 
@@ -20,21 +21,23 @@ const register = async (req, res, next) => {
     }
 
     // Check if user already exists
-    const userExists = await User.findOne({ email: email.toLowerCase() });
+    const cleanEmail = email.toLowerCase().trim();
+    const userExists = await storageService.findUserByEmail(cleanEmail);
     if (userExists) {
       return errorResponse(res, 400, 'An account with this email address already exists');
     }
 
     // Hash password using bcrypt
-    const password_hash = await User.hashPassword(password);
+    const salt = await bcrypt.genSalt(10);
+    const password_hash = await bcrypt.hash(password, salt);
 
-    // Create user
-    const user = await User.create({
-      name,
-      email: email.toLowerCase(),
+    // Create user via storageService
+    const user = await storageService.createUser({
+      name: name.trim(),
+      email: cleanEmail,
       password_hash,
       role: role || 'student',
-      college: college || 'IIT Bombay',
+      college: college || 'DKTE',
       branch: branch || 'Computer Science',
       semester: semester || 'Sem 5',
     });
@@ -47,10 +50,6 @@ const register = async (req, res, next) => {
       name: user.name,
       college: user.college,
     });
-
-    // Update user auth_token
-    user.auth_token = token;
-    await user.save();
 
     return successResponse(res, 201, 'User registered successfully', {
       user: {
@@ -83,14 +82,14 @@ const login = async (req, res, next) => {
       return errorResponse(res, 400, 'Please provide email and password');
     }
 
-    // Find user by email
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const cleanEmail = email.toLowerCase().trim();
+    const user = await storageService.findUserByEmail(cleanEmail);
     if (!user) {
       return errorResponse(res, 401, 'Invalid email or password credentials');
     }
 
-    // Check password
-    const isMatch = await user.matchPassword(password);
+    // Verify password with bcrypt
+    const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
       return errorResponse(res, 401, 'Invalid email or password credentials');
     }
@@ -103,9 +102,6 @@ const login = async (req, res, next) => {
       name: user.name,
       college: user.college,
     });
-
-    user.auth_token = token;
-    await user.save();
 
     return successResponse(res, 200, 'Login successful', {
       user: {
@@ -157,16 +153,17 @@ const getMe = async (req, res, next) => {
 const demoLogin = async (req, res, next) => {
   try {
     const demoEmail = 'rohan.sharma@iitb.ac.in';
-    let user = await User.findOne({ email: demoEmail });
+    let user = await storageService.findUserByEmail(demoEmail);
 
     if (!user) {
-      const password_hash = await User.hashPassword('studysnap123');
-      user = await User.create({
+      const salt = await bcrypt.genSalt(10);
+      const password_hash = await bcrypt.hash('studysnap123', salt);
+      user = await storageService.createUser({
         name: 'Rohan Sharma',
         email: demoEmail,
         password_hash,
         role: 'student',
-        college: 'IIT Bombay',
+        college: 'DKTE',
         branch: 'Computer Science',
         semester: 'Sem 5',
       });

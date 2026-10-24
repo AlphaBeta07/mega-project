@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const storageService = require('../services/storageService');
 const { errorResponse } = require('../utils/apiResponse');
 
 /**
@@ -19,14 +19,12 @@ const protect = async (req, res, next) => {
       const secret = process.env.JWT_SECRET || 'studysnap_jwt_super_secret_key_2026_change_in_production';
       const decoded = jwt.verify(token, secret);
 
-      // Find user by user_id or email
+      // Find user by user_id or email via resilient storageService
       let user = null;
       if (decoded.userId) {
-        user = await User.findOne({ user_id: decoded.userId });
-      } else if (decoded.id) {
-        user = await User.findById(decoded.id);
+        user = await storageService.findUserById(decoded.userId);
       } else if (decoded.email) {
-        user = await User.findOne({ email: decoded.email });
+        user = await storageService.findUserByEmail(decoded.email);
       }
 
       if (!user) {
@@ -36,7 +34,7 @@ const protect = async (req, res, next) => {
           name: decoded.name || 'Student User',
           email: decoded.email || 'student@studysnap.ai',
           role: decoded.role || 'student',
-          college: decoded.college || 'IIT Bombay',
+          college: decoded.college || 'DKTE',
           branch: decoded.branch || 'Computer Science',
           semester: decoded.semester || 'Sem 5',
         };
@@ -73,7 +71,13 @@ const optionalAuth = async (req, res, next) => {
       const secret = process.env.JWT_SECRET || 'studysnap_jwt_super_secret_key_2026_change_in_production';
       const decoded = jwt.verify(token, secret);
 
-      let user = await User.findOne({ user_id: decoded.userId });
+      let user = null;
+      if (decoded.userId) {
+        user = await storageService.findUserById(decoded.userId);
+      } else if (decoded.email) {
+        user = await storageService.findUserByEmail(decoded.email);
+      }
+
       if (user) {
         req.user = user;
       } else {

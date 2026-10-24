@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  fastapi-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: studysnap-ai-engine
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - CHROMA_PERSIST_DIR=/app/chroma_data
+      - LM_STUDIO_URL=http://host.docker.internal:1234/v1
+      - COMFYUI_URL=http://host.docker.internal:8188
+      - SUPABASE_URL=${SUPABASE_URL:-https://your-project-id.supabase.co}
+      - SUPABASE_PUBLISHABLE_KEY=${SUPABASE_PUBLISHABLE_KEY:-}
+      - SUPABASE_SECRET_KEY=${SUPABASE_SECRET_KEY:-}
+      - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET:-}
+    volumes:
+      - chroma_data:/app/chroma_data
+      - fastapi_uploads:/app/uploads
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/db"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - studysnap-network
+
+  main-backend:
+    build:
+      context: ./main_backend
+      dockerfile: Dockerfile
+    container_name: studysnap-gateway
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - NODE_ENV=production
+      - FASTAPI_BACKEND_URL=http://fastapi-backend:8000
+      - JWT_SECRET=${SUPABASE_JWT_SECRET:-studysnap_production_secure_jwt_secret_token_2026}
+      - SUPABASE_URL=${SUPABASE_URL:-}
+    volumes:
+      - main_backend_data:/app/data
+      - main_backend_uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      fastapi-backend:
+        condition: service_healthy
+    networks:
+      - studysnap-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_GATEWAY_URL=http://localhost:5000
+        - VITE_AI_BACKEND_URL=http://localhost:8000
+        - VITE_SUPABASE_URL=${VITE_SUPABASE_URL:-https://your-project-id.supabase.co}
+        - VITE_SUPABASE_PUBLISHABLE_KEY=${VITE_SUPABASE_PUBLISHABLE_KEY:-}
+        - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY:-}
+    container_name: studysnap-web
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - main-backend
+      - fastapi-backend
+    networks:
+      - studysnap-network
+
+volumes:
+  chroma_data:
+    name: studysnap_chroma_data
+  fastapi_uploads:
+    name: studysnap_fastapi_uploads
+  main_backend_data:
+    name: studysnap_main_backend_data
+  main_backend_uploads:
+    name: studysnap_main_backend_uploads
+
+networks:
+  studysnap-network:
+    name: studysnap-network
+    driver: bridge

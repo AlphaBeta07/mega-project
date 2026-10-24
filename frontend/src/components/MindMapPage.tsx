@@ -55,9 +55,9 @@ export const MindMapPage: React.FC<MindMapPageProps> = ({ backendUrl, selectedSo
           <button
             onClick={onBack}
             style={{
-              background: 'rgba(255, 255, 255, 0.08)',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              color: '#F3F4F6',
+              background: 'var(--surface-secondary, rgba(255, 255, 255, 0.08))',
+              border: '1px solid var(--border-default)',
+              color: 'var(--text-primary)',
               padding: '6px 16px',
               borderRadius: '9999px',
               fontSize: '0.85rem',
@@ -65,7 +65,8 @@ export const MindMapPage: React.FC<MindMapPageProps> = ({ backendUrl, selectedSo
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '8px'
+              gap: '8px',
+              transition: 'all 0.2s'
             }}
           >
             <ArrowLeft size={16} />

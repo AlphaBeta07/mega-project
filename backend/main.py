@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException, Form, Depends
+from fastapi import FastAPI, File, UploadFile, HTTPException, Form, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
@@ -20,26 +20,28 @@ import threading
 import json
 import asyncio
 import time
+import logging
+from datetime import datetime
 from database import (
-    get_async_db, ping_db, db_manager,
-    UserCRUD, NoteCRUD, AudioCRUD, PYQCRUD, ChatbotCRUD, SourceCRUD, ArtifactCRUD
+    ping_db, settings, get_supabase,
+    UserCRUD, NoteCRUD, ChatbotCRUD, SourceCRUD, ArtifactCRUD,
+    NotebookCRUD, NotebookCreate, NotebookUpdate, NotebookInDB
 )
+from auth import get_current_user, DEMO_USER_ID
+
+logger = logging.getLogger("studysnap.api")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """FastAPI Lifespan Context Manager for MongoDB Database Connection."""
-    # Startup: Connect to MongoDB
-    print("[StudySnap AI] Connecting to MongoDB Database...")
-    db = get_async_db()
+    """FastAPI Lifespan Context Manager for Supabase Database Connection."""
+    print("[StudySnap AI] Initializing Supabase PostgreSQL connection...")
     is_connected = await ping_db()
     if is_connected:
-        print("[StudySnap AI] ✓ Connected to MongoDB successfully!")
+        print("[StudySnap AI] ✓ Connected to Supabase PostgreSQL successfully!")
     else:
-        print("[StudySnap AI] ⚠️ Warning: MongoDB connection failed or offline. Check MONGODB_URL in .env")
+        print("[StudySnap AI] ℹ️ Supabase running in local/resilient fallback mode. (Configure SUPABASE_URL & SUPABASE_KEY in .env)")
     yield
-    # Shutdown: Close database connections
-    print("[StudySnap AI] Closing MongoDB database connections...")
-    db_manager.close()
+    print("[StudySnap AI] Backend shutdown complete.")
 
 app = FastAPI(title="StudySnap AI Backend", lifespan=lifespan)
 
@@ -118,30 +120,61 @@ class NoteUpdateRequest(BaseModel):
 # ==========================================
 @app.get("/api/health/db")
 async def db_health():
-    """Verify active connection status with MongoDB database."""
+    """Verify active connection status with Supabase PostgreSQL database."""
     is_online = await ping_db()
-    if is_online:
-        return {"status": "online", "database": "studysnap_db", "connected": True}
-    return {"status": "offline", "database": "studysnap_db", "connected": False}
+    return {
+        "status": "online" if is_online else "fallback",
+        "database": "supabase_postgresql",
+        "connected": is_online,
+        "supabase_configured": settings.is_configured
+    }
 
 # ==========================================
-# 2. SOURCES ENDPOINTS (MongoDB + ChromaDB Sync)
+# 2. SOURCES ENDPOINTS (Supabase Documents + ChromaDB Vector Sync)
 # ==========================================
 @app.post("/api/sources/upload")
-async def upload_sources(files: List[UploadFile] = File(...)):
-    """Upload multiple files, process them, and store embeddings in ChromaDB and metadata in MongoDB."""
+async def upload_sources(
+    files: List[UploadFile] = File(...),
+    authorization: Optional[str] = Header(None)
+):
+    """Upload multiple files, process them, and store embeddings in ChromaDB and metadata in Supabase."""
     t_start = time.perf_counter()
+    token = authorization.split()[1] if authorization and len(authorization.split()) == 2 else None
     
+    user_id = DEMO_USER_ID
+    if authorization:
+        try:
+            curr_user = await get_current_user(authorization)
+            user_id = curr_user["id"]
+        except Exception:
+            user_id = DEMO_USER_ID
+
     async def process_single_file(file: UploadFile):
         try:
+            clean_filename = os.path.basename(file.filename or "uploaded_file").replace("..", "").strip()
+            if not clean_filename:
+                clean_filename = f"source_{uuid.uuid4()}"
             file_id = str(uuid.uuid4())
-            file_path = f"uploads/{file_id}_{file.filename}"
+            file_path = os.path.join("uploads", f"{file_id}_{clean_filename}")
             
             with open(file_path, "wb") as buffer:
                 shutil.copyfileobj(file.file, buffer)
                 
-            # Process and ingest document into ChromaDB & MongoDB in a separate thread
-            doc_meta = await asyncio.to_thread(ingest_document, file_path, file.filename, file_id)
+            # Process and ingest document into ChromaDB in a separate thread
+            doc_meta = await asyncio.to_thread(ingest_document, file_path, clean_filename, file_id)
+            if doc_meta:
+                try:
+                    await SourceCRUD.save_document({
+                        "id": file_id,
+                        "owner_id": user_id,
+                        "filename": clean_filename,
+                        "file_type": doc_meta.get("type", "unknown"),
+                        "chunk_count": doc_meta.get("chunk_count", 0),
+                        "storage_path": file_path,
+                        "metadata": doc_meta
+                    }, access_token=token)
+                except Exception as doc_err:
+                    print(f"Supabase Document Metadata Save Note: {doc_err}")
             return doc_meta
         except Exception as e:
             print(f"Error processing {file.filename}: {e}")
@@ -199,45 +232,75 @@ async def list_sources():
 
 @app.delete("/api/sources/{file_id}")
 async def remove_source(file_id: str):
-    """Delete a source from MongoDB and ChromaDB."""
+    """Delete a source from MongoDB and ChromaDB with path sanitization."""
     try:
         delete_source(file_id)
-        for filename in os.listdir("uploads"):
-            if filename.startswith(file_id):
-                os.remove(os.path.join("uploads", filename))
+        safe_file_id = os.path.basename(file_id).replace("..", "").strip()
+        if safe_file_id and os.path.exists("uploads"):
+            uploads_dir = os.path.abspath("uploads")
+            for filename in os.listdir(uploads_dir):
+                if filename.startswith(safe_file_id):
+                    target_file = os.path.join(uploads_dir, filename)
+                    if os.path.commonpath([uploads_dir, os.path.abspath(target_file)]) == uploads_dir:
+                        if os.path.isfile(target_file):
+                            try:
+                                os.remove(target_file)
+                            except Exception as rm_err:
+                                print(f"Warning: could not remove {target_file}: {rm_err}")
         return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 # ==========================================
-# 3. CHATBOT SESSIONS & MESSAGES (MongoDB Persistence)
+# 3. CHATBOT SESSIONS & MESSAGES (Supabase Persistence)
 # ==========================================
 @app.get("/api/sessions")
-async def get_sessions(user_id: str = "default_user"):
-    """Fetch saved chatbot sessions for a user from MongoDB."""
-    db = get_async_db()
-    sessions = await ChatbotCRUD.list_user_sessions(db, user_id=user_id)
-    return {"sessions": [s.model_dump() for s in sessions]}
+async def get_sessions(
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    authorization: Optional[str] = Header(None)
+):
+    """Fetch saved chatbot sessions for authenticated user from Supabase."""
+    token = authorization.split()[1] if authorization and len(authorization.split()) == 2 else None
+    try:
+        sessions = await ChatbotCRUD.list_user_sessions(user_id=current_user["id"], access_token=token)
+        return {"sessions": sessions}
+    except Exception as e:
+        print(f"Supabase Sessions Fetch Warning: {e}")
+        return {"sessions": []}
 
 @app.get("/api/sessions/{session_id}")
-async def get_session_detail(session_id: str):
-    """Fetch chat session details and message history from MongoDB."""
-    db = get_async_db()
-    session = await ChatbotCRUD.get_session(db, session_id)
+async def get_session_detail(
+    session_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    authorization: Optional[str] = Header(None)
+):
+    """Fetch chat session details and message history from Supabase."""
+    token = authorization.split()[1] if authorization and len(authorization.split()) == 2 else None
+    session = await ChatbotCRUD.get_session(session_id, access_token=token)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found.")
-    return {"session": session.model_dump()}
+    return {"session": session}
 
 @app.delete("/api/sessions/{session_id}")
-async def delete_session(session_id: str):
-    """Delete a chat session from MongoDB."""
-    db = get_async_db()
-    deleted = await ChatbotCRUD.delete_session(db, session_id)
+async def delete_session(
+    session_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    authorization: Optional[str] = Header(None)
+):
+    """Delete a chat session from Supabase."""
+    token = authorization.split()[1] if authorization and len(authorization.split()) == 2 else None
+    deleted = await ChatbotCRUD.delete_session(session_id, access_token=token)
     return {"success": deleted}
 
 @app.post("/api/chat")
-async def chat(request: ChatRequest):
-    """Chat with the AI and save session history into MongoDB."""
+async def chat(
+    request: ChatRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    authorization: Optional[str] = Header(None)
+):
+    """Chat with the AI and save session history into Supabase."""
+    token = authorization.split()[1] if authorization and len(authorization.split()) == 2 else None
+    user_id = current_user["id"]
     try:
         response_text, sources_used = await chat_with_context(
             request.message, 
@@ -246,73 +309,102 @@ async def chat(request: ChatRequest):
             request.response_language
         )
 
-        db = get_async_db()
-        # Save message into MongoDB session history if session_id provided or create session
-        session_id = request.session_id
-        if session_id:
-            session = await ChatbotCRUD.get_session(db, session_id)
+        session_id = request.session_id or str(uuid.uuid4())
+        try:
+            session = await ChatbotCRUD.get_session(session_id, access_token=token)
             if not session:
-                await ChatbotCRUD.create_session(db, {
+                await ChatbotCRUD.create_session({
                     "session_id": session_id,
+                    "user_id": user_id,
                     "title": request.message[:30] + ("..." if len(request.message) > 30 else ""),
                     "selected_source_ids": request.selected_source_ids or []
-                })
-        else:
-            session_id = str(uuid.uuid4())
-            await ChatbotCRUD.create_session(db, {
-                "session_id": session_id,
-                "title": request.message[:30] + ("..." if len(request.message) > 30 else ""),
-                "selected_source_ids": request.selected_source_ids or []
-            })
+                }, access_token=token)
 
-        # Save user query and assistant response in MongoDB
-        await ChatbotCRUD.add_message(db, session_id, {
-            "role": "user",
-            "content": request.message,
-            "sources_used": []
-        })
-        await ChatbotCRUD.add_message(db, session_id, {
-            "role": "assistant",
-            "content": response_text,
-            "sources_used": sources_used or []
-        })
+            await ChatbotCRUD.add_message(session_id, {
+                "user_id": user_id,
+                "role": "user",
+                "content": request.message,
+                "sources_used": []
+            }, access_token=token)
+            await ChatbotCRUD.add_message(session_id, {
+                "user_id": user_id,
+                "role": "assistant",
+                "content": response_text,
+                "sources_used": sources_used or []
+            }, access_token=token)
+        except Exception as db_err:
+            print(f"Supabase Chat Session Persistence Warning: {db_err}")
 
         return {"response": response_text, "sources": sources_used, "session_id": session_id}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 # ==========================================
-# 4. LECTURE NOTES CRUD ENDPOINTS (MongoDB Persistence)
+# 4. LECTURE NOTES CRUD ENDPOINTS (Supabase Persistence)
 # ==========================================
 @app.get("/api/notes")
-async def get_notes(user_id: str = "default_user", subject: Optional[str] = None):
-    """Fetch user lecture notes from MongoDB."""
-    db = get_async_db()
-    notes = await NoteCRUD.get_user_notes(db, user_id=user_id, subject=subject)
-    return {"notes": [n.model_dump() for n in notes]}
+async def get_notes(
+    subject: Optional[str] = None,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    authorization: Optional[str] = Header(None)
+):
+    """Fetch user lecture notes from Supabase."""
+    token = authorization.split()[1] if authorization and len(authorization.split()) == 2 else None
+    try:
+        notes = await NoteCRUD.get_user_notes(user_id=current_user["id"], subject=subject, access_token=token)
+        return {"notes": notes}
+    except Exception as e:
+        print(f"Supabase Note Fetch Warning: {e}")
+        return {"notes": []}
 
 @app.post("/api/notes")
-async def create_note(request: NoteCreateRequest):
-    """Create and store a lecture note in MongoDB."""
-    db = get_async_db()
-    note = await NoteCRUD.create_note(db, request.model_dump())
-    return {"success": True, "note": note.model_dump()}
+async def create_note(
+    request: NoteCreateRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    authorization: Optional[str] = Header(None)
+):
+    """Create and store a lecture note in Supabase."""
+    token = authorization.split()[1] if authorization and len(authorization.split()) == 2 else None
+    try:
+        data = request.model_dump()
+        data["user_id"] = current_user["id"]
+        note = await NoteCRUD.create_note(data, access_token=token)
+        return {"success": True, "note": note}
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Database storage temporarily unavailable: {str(e)}")
 
 @app.put("/api/notes/{note_id}")
-async def update_note(note_id: str, request: NoteUpdateRequest):
-    """Update an existing lecture note in MongoDB."""
-    db = get_async_db()
-    updated = await NoteCRUD.update_note(db, note_id, request.model_dump(exclude_unset=True))
-    if not updated:
-        raise HTTPException(status_code=404, detail="Note not found.")
-    return {"success": True, "note": updated.model_dump()}
+async def update_note(
+    note_id: str,
+    request: NoteUpdateRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    authorization: Optional[str] = Header(None)
+):
+    """Update an existing lecture note in Supabase."""
+    token = authorization.split()[1] if authorization and len(authorization.split()) == 2 else None
+    try:
+        updated = await NoteCRUD.update_note(note_id, request.model_dump(exclude_unset=True), access_token=token)
+        if not updated:
+            raise HTTPException(status_code=404, detail="Note not found.")
+        return {"success": True, "note": updated}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.delete("/api/notes/{note_id}")
-async def delete_note(note_id: str):
-    """Delete a lecture note from MongoDB."""
-    db = get_async_db()
-    deleted = await NoteCRUD.delete_note(db, note_id)
-    return {"success": deleted}
+async def delete_note(
+    note_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    authorization: Optional[str] = Header(None)
+):
+    """Delete a lecture note from Supabase."""
+    token = authorization.split()[1] if authorization and len(authorization.split()) == 2 else None
+    try:
+        deleted = await NoteCRUD.delete_note(note_id, access_token=token)
+        return {"success": deleted}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ==========================================
 # 5. AI GENERATED ARTIFACTS ENDPOINTS
@@ -328,30 +420,35 @@ async def create_audio_overview(request: AudioOverviewRequest):
         print(f"[Audio] === Script generation phase: {time.perf_counter() - t0:.2f}s ===")
         
         t0 = time.perf_counter()
+        audio_filename = await generate_tts_audio(script_json)
         audio_url = f"http://localhost:8000/uploads/{audio_filename}"
         print(f"[Audio] === TTS generation phase: {time.perf_counter() - t0:.2f}s ===")
 
-        # Save artifact record in MongoDB
+        # Save artifact record in Supabase
         try:
-            db = get_async_db()
-            await ArtifactCRUD.save_artifact(db, {
+            await ArtifactCRUD.save_artifact({
                 "artifact_type": "audio_overview",
                 "title": "Podcast Overview",
-                "content_data": {"audio_url": audio_url, "script": script_json},
+                "content_data": {"audio_url": audio_url, "script": script_json, "filename": audio_filename},
                 "selected_source_ids": request.selected_source_ids or [],
                 "response_language": request.response_language or "English"
             })
         except Exception as db_err:
-            print(f"MongoDB Artifact Save Warning: {db_err}")
+            print(f"Supabase Artifact Save Warning: {db_err}")
 
         print(f"[Audio] ========== TOTAL AUDIO OVERVIEW: {time.perf_counter() - t_total:.2f}s ==========")
-        return {"success": True, "audio_url": audio_url}
+        return {
+            "success": True, 
+            "audio_url": audio_url,
+            "relative_url": f"/uploads/{audio_filename}",
+            "filename": audio_filename
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/infographic")
 async def create_infographic(request: InfographicRequest):
-    """Generate a structured JSON infographic plan from selected sources and save artifact in MongoDB."""
+    """Generate a structured JSON infographic plan from selected sources and save artifact in Supabase."""
     try:
         infographic_data = await generate_infographic_data(
             request.selected_source_ids,
@@ -362,8 +459,7 @@ async def create_infographic(request: InfographicRequest):
         )
 
         try:
-            db = get_async_db()
-            await ArtifactCRUD.save_artifact(db, {
+            await ArtifactCRUD.save_artifact({
                 "artifact_type": "infographic",
                 "title": f"Infographic ({request.style})",
                 "content_data": {"data": infographic_data, "style": request.style},
@@ -371,7 +467,7 @@ async def create_infographic(request: InfographicRequest):
                 "response_language": request.response_language or "English"
             })
         except Exception as db_err:
-            print(f"MongoDB Artifact Save Warning: {db_err}")
+            print(f"Supabase Artifact Save Warning: {db_err}")
 
         return {"success": True, "data": infographic_data}
     except Exception as e:
@@ -408,7 +504,7 @@ async def api_status():
 
 @app.post("/api/mindmap")
 async def create_mind_map(request: MindMapRequest):
-    """Generate structured JSON Mind Map from selected sources and save artifact in MongoDB."""
+    """Generate structured JSON Mind Map from selected sources and save artifact in Supabase."""
     try:
         mind_map_data = await generate_mind_map_data(
             request.selected_source_ids,
@@ -417,8 +513,7 @@ async def create_mind_map(request: MindMapRequest):
         )
 
         try:
-            db = get_async_db()
-            await ArtifactCRUD.save_artifact(db, {
+            await ArtifactCRUD.save_artifact({
                 "artifact_type": "mind_map",
                 "title": "Mind Map Overview",
                 "content_data": {"mind_map": mind_map_data},
@@ -426,7 +521,7 @@ async def create_mind_map(request: MindMapRequest):
                 "response_language": request.response_language or "English"
             })
         except Exception as db_err:
-            print(f"MongoDB Artifact Save Warning: {db_err}")
+            print(f"Supabase Artifact Save Warning: {db_err}")
 
         return {"success": True, "mind_map": mind_map_data}
     except Exception as e:
@@ -442,15 +537,14 @@ async def create_video_overview(request: VideoOverviewRequest):
 
 @app.post("/api/quiz")
 async def create_quiz(request: QuizRequest):
-    """Generate a quiz from selected sources."""
+    """Generate a quiz from selected sources and save artifact in Supabase."""
     try:
         quiz_data = await generate_quiz_data(
             request.selected_source_ids,
             request.response_language
         )
         try:
-            db = get_async_db()
-            await ArtifactCRUD.save_artifact(db, {
+            await ArtifactCRUD.save_artifact({
                 "artifact_type": "quiz",
                 "title": "Quiz",
                 "content_data": {"quiz": quiz_data},
@@ -458,7 +552,7 @@ async def create_quiz(request: QuizRequest):
                 "response_language": request.response_language or "English"
             })
         except Exception as db_err:
-            print(f"MongoDB Artifact Save Warning: {db_err}")
+            print(f"Supabase Artifact Save Warning: {db_err}")
 
         return {"success": True, "quiz": quiz_data}
     except Exception as e:
@@ -466,15 +560,14 @@ async def create_quiz(request: QuizRequest):
 
 @app.post("/api/flashcards")
 async def create_flashcards(request: FlashcardsRequest):
-    """Generate flashcards from selected sources."""
+    """Generate flashcards from selected sources and save artifact in Supabase."""
     try:
         flashcards_data = await generate_flashcards_data(
             request.selected_source_ids,
             request.response_language
         )
         try:
-            db = get_async_db()
-            await ArtifactCRUD.save_artifact(db, {
+            await ArtifactCRUD.save_artifact({
                 "artifact_type": "flashcards",
                 "title": "Flashcards",
                 "content_data": {"flashcards": flashcards_data},
@@ -482,12 +575,327 @@ async def create_flashcards(request: FlashcardsRequest):
                 "response_language": request.response_language or "English"
             })
         except Exception as db_err:
-            print(f"MongoDB Artifact Save Warning: {db_err}")
+            print(f"Supabase Artifact Save Warning: {db_err}")
 
         return {"success": True, "flashcards": flashcards_data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# =============================================================================
+# NOTEBOOK PERSISTENCE ENDPOINTS (Supabase PostgreSQL + RLS)
+# =============================================================================
+
+@app.post("/api/notebooks")
+async def create_notebook(
+    request: NotebookCreate,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    authorization: Optional[str] = Header(None)
+):
+    """
+    Create a new notebook in Supabase PostgreSQL associated with verified user.
+    Enforces user ownership, generates UUID, and persists timestamps.
+    """
+    user_id = current_user["id"]
+    token = authorization.split()[1] if authorization and len(authorization.split()) == 2 else None
+    notebook_id = str(uuid.uuid4())
+    nb_dict = {
+        "id": notebook_id,
+        "user_id": user_id,
+        "title": request.title or "Untitled Notebook",
+        "code": request.code or "CS101",
+        "content": request.content or "",
+        "sources_count": len(request.sources) if request.sources else 0,
+        "notes_count": 0,
+        "sources": request.sources or [],
+        "chat_history": [],
+        "status": "ready"
+    }
+    saved = await NotebookCRUD.create_notebook(nb_dict, access_token=token)
+    return {"success": True, "notebook": saved}
+
+@app.get("/api/notebooks")
+async def list_notebooks(
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    authorization: Optional[str] = Header(None)
+):
+    """
+    List all notebooks in Supabase owned by the authenticated user.
+    Results are sorted by updated_at descending.
+    """
+    user_id = current_user["id"]
+    token = authorization.split()[1] if authorization and len(authorization.split()) == 2 else None
+    notebooks = await NotebookCRUD.get_user_notebooks(user_id, access_token=token)
+    return {"success": True, "notebooks": notebooks}
+
+@app.get("/api/notebooks/{notebook_id}")
+async def get_notebook(
+    notebook_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    authorization: Optional[str] = Header(None)
+):
+    """Retrieve a single notebook by ID ensuring Supabase user ownership."""
+    user_id = current_user["id"]
+    token = authorization.split()[1] if authorization and len(authorization.split()) == 2 else None
+    nb = await NotebookCRUD.get_notebook_by_id(notebook_id, user_id, access_token=token)
+    if nb:
+        return {"success": True, "notebook": nb}
+
+    raise HTTPException(status_code=404, detail="Notebook not found or access denied")
+
+@app.put("/api/notebooks/{notebook_id}")
+async def update_notebook(
+    notebook_id: str,
+    request: NotebookUpdate,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    authorization: Optional[str] = Header(None)
+):
+    """
+    Debounced autosave for notebook title, content, sources, and chat in Supabase.
+    Verifies user ownership before applying updates.
+    """
+    user_id = current_user["id"]
+    token = authorization.split()[1] if authorization and len(authorization.split()) == 2 else None
+    update_data = request.model_dump(exclude_unset=True)
+    updated = await NotebookCRUD.update_notebook(notebook_id, user_id, update_data, access_token=token)
+    if updated:
+        return {"success": True, "notebook": updated}
+
+    raise HTTPException(status_code=404, detail="Notebook not found or access denied")
+
+@app.delete("/api/notebooks/{notebook_id}")
+async def delete_notebook(
+    notebook_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    authorization: Optional[str] = Header(None)
+):
+    """Delete notebook from Supabase ensuring user ownership."""
+    user_id = current_user["id"]
+    token = authorization.split()[1] if authorization and len(authorization.split()) == 2 else None
+    deleted = await NotebookCRUD.delete_notebook(notebook_id, user_id, access_token=token)
+    if deleted:
+        return {"success": True, "message": "Notebook deleted successfully"}
+
+    raise HTTPException(status_code=404, detail="Notebook not found or access denied")
+
+# =============================================================================
+# STUDENT PROFILE PERSISTENCE ENDPOINTS (Supabase PostgreSQL + RLS)
+# =============================================================================
+
+class StudentProfileUpdateRequest(BaseModel):
+    full_name: Optional[str] = None
+    display_name: Optional[str] = None
+    college_name: Optional[str] = None
+    college: Optional[str] = None
+    degree_program: Optional[str] = None
+    custom_degree: Optional[str] = None
+    branch: Optional[str] = None
+    custom_branch: Optional[str] = None
+    academic_year: Optional[str] = None
+    semester: Optional[str] = None
+    graduation_year: Optional[str] = None
+    roll_number: Optional[str] = None
+    avatar_path: Optional[str] = None
+    avatar_url: Optional[str] = None
+    theme_preference: Optional[str] = None
+
+@app.get("/api/user/profile")
+async def get_current_user_profile(
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    authorization: Optional[str] = Header(None)
+):
+    """Retrieve authenticated student profile from Supabase."""
+    user_id = current_user["id"]
+    token = authorization.split()[1] if authorization and len(authorization.split()) == 2 else None
+    profile = await UserCRUD.get_user_profile(user_id, access_token=token)
+    return {"success": True, "profile": profile}
+
+@app.put("/api/user/profile")
+async def update_current_user_profile(
+    request: StudentProfileUpdateRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    authorization: Optional[str] = Header(None)
+):
+    """Update student profile in Supabase with RLS user isolation."""
+    user_id = current_user["id"]
+    token = authorization.split()[1] if authorization and len(authorization.split()) == 2 else None
+    data = request.model_dump(exclude_unset=True)
+    updated = await UserCRUD.upsert_user_profile(user_id, data, access_token=token)
+    return {"success": True, "profile": updated}
+
+# =============================================================================
+# STUDENT PROFILE PHOTO STORAGE & MANAGEMENT (Supabase Storage 'avatars' bucket)
+# =============================================================================
+
+MAX_AVATAR_SIZE = 5 * 1024 * 1024  # 5 MB
+ALLOWED_AVATAR_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}
+
+def validate_avatar_bytes(data: bytes, declared_content_type: Optional[str] = None) -> str:
+    """
+    Validates avatar byte size and file magic bytes.
+    Returns the resolved image extension ('jpg', 'png', or 'webp').
+    Raises HTTPException(400) if validation fails.
+    """
+    if len(data) > MAX_AVATAR_SIZE:
+        size_mb = round(len(data) / (1024 * 1024), 2)
+        raise HTTPException(
+            status_code=400,
+            detail=f"File size ({size_mb} MB) exceeds maximum allowed limit of 5 MB."
+        )
+
+    if len(data) == 0:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+
+    # Magic byte verification
+    if data.startswith(b"\xff\xd8\xff"):
+        return "jpg"
+    elif data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "png"
+    elif data.startswith(b"RIFF") and len(data) >= 12 and data[8:12] == b"WEBP":
+        return "webp"
+    
+    # Check declared content type if magic bytes match format
+    if declared_content_type in ALLOWED_AVATAR_MIME_TYPES:
+        if "png" in declared_content_type:
+            return "png"
+        elif "webp" in declared_content_type:
+            return "webp"
+        elif "jpeg" in declared_content_type or "jpg" in declared_content_type:
+            return "jpg"
+
+    raise HTTPException(
+        status_code=400,
+        detail="Unsupported file format. Only JPEG, PNG, and WebP images up to 5 MB are allowed."
+    )
+
+@app.post("/api/user/avatar/upload")
+async def upload_user_avatar(
+    file: UploadFile = File(...),
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    authorization: Optional[str] = Header(None)
+):
+    """
+    Production-ready server-side avatar upload:
+    - Enforces authenticated user ID ownership (no spoofing).
+    - Validates file size (max 5 MB) and actual image magic bytes (JPEG/PNG/WebP).
+    - Generates user-scoped path: `<user_id>/avatar_<timestamp>.<ext>`.
+    - Uploads to Supabase Storage 'avatars' bucket.
+    - Updates profiles table (stores storage path, not raw image bytes).
+    - Deletes prior avatar file cleanly to prevent storage bloat.
+    """
+    user_id = current_user["id"]
+    token = authorization.split()[1] if authorization and len(authorization.split()) == 2 else None
+
+    contents = await file.read()
+    ext = validate_avatar_bytes(contents, file.content_type)
+
+    filename = f"avatar_{int(time.time())}.{ext}"
+    storage_subpath = f"{user_id}/{filename}"
+    target_bucket = "avatars"
+
+    existing_profile = await UserCRUD.get_user_profile(user_id, access_token=token)
+    prior_avatar_path = existing_profile.get("avatar_path") if existing_profile else None
+
+    avatar_path = f"{target_bucket}:{storage_subpath}"
+    avatar_url = f"https://qtxmsuvueadiqdmwxuvj.supabase.co/storage/v1/object/public/{target_bucket}/{storage_subpath}?t={int(time.time())}"
+
+    supabase_client = get_supabase(token)
+    if supabase_client:
+        try:
+            mime = "image/png" if ext == "png" else ("image/webp" if ext == "webp" else "image/jpeg")
+            supabase_client.storage.from_(target_bucket).upload(
+                path=storage_subpath,
+                file=contents,
+                file_options={"content-type": mime, "upsert": "true"}
+            )
+            pub_res = supabase_client.storage.from_(target_bucket).get_public_url(storage_subpath)
+            if pub_res:
+                avatar_url = f"{pub_res}?t={int(time.time())}"
+
+            # Clean up prior avatar object
+            if prior_avatar_path and prior_avatar_path != avatar_path:
+                prev_bucket = target_bucket
+                prev_sub = prior_avatar_path
+                if ":" in prior_avatar_path:
+                    parts = prior_avatar_path.split(":", 1)
+                    prev_bucket, prev_sub = parts[0], parts[1]
+                if user_id in prev_sub:
+                    try:
+                        supabase_client.storage.from_(prev_bucket).remove([prev_sub])
+                    except Exception as cln_err:
+                        logger.warning(f"Could not clean up prior avatar {prev_sub}: {cln_err}")
+        except Exception as sb_err:
+            logger.warning(f"Supabase storage upload notice: {sb_err}")
+
+    updated_profile = await UserCRUD.upsert_user_profile(
+        user_id,
+        {
+            "avatar_path": avatar_path,
+            "avatar_url": avatar_url
+        },
+        access_token=token
+    )
+
+    return {
+        "success": True,
+        "avatar_path": avatar_path,
+        "avatar_url": avatar_url,
+        "profile": updated_profile
+    }
+
+@app.delete("/api/user/avatar")
+async def remove_user_avatar(
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    authorization: Optional[str] = Header(None)
+):
+    """
+    Remove user profile photo:
+    - Enforces authenticated user ID ownership.
+    - Prevents arbitrary file path deletion by verifying path belongs to user's folder.
+    - Deletes storage object from avatars bucket.
+    - Resets avatar_path and avatar_url to None in profiles table.
+    """
+    user_id = current_user["id"]
+    token = authorization.split()[1] if authorization and len(authorization.split()) == 2 else None
+
+    existing_profile = await UserCRUD.get_user_profile(user_id, access_token=token)
+    prior_avatar_path = existing_profile.get("avatar_path") if existing_profile else None
+
+    if prior_avatar_path:
+        target_bucket = "avatars"
+        sub_path = prior_avatar_path
+        if ":" in prior_avatar_path:
+            parts = prior_avatar_path.split(":", 1)
+            target_bucket, sub_path = parts[0], parts[1]
+
+        # Ownership sanity check: Ensure path starts with user_id/
+        if not (sub_path.startswith(f"{user_id}/") or f"/{user_id}/" in sub_path):
+            raise HTTPException(status_code=403, detail="Unauthorized deletion: avatar path does not belong to user.")
+
+        supabase_client = get_supabase(token)
+        if supabase_client:
+            try:
+                supabase_client.storage.from_(target_bucket).remove([sub_path])
+            except Exception as rm_err:
+                logger.warning(f"Storage avatar removal notice: {rm_err}")
+
+    updated_profile = await UserCRUD.upsert_user_profile(
+        user_id,
+        {
+            "avatar_path": None,
+            "avatar_url": None
+        },
+        access_token=token
+    )
+
+    return {
+        "success": True,
+        "message": "Avatar removed successfully. Initial fallback restored.",
+        "profile": updated_profile
+    }
+
+
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+
+

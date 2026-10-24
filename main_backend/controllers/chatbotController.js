@@ -46,39 +46,42 @@ const handleChat = async (req, res, next) => {
       sourcesUsed = [];
     }
 
-    // Save session & message in MongoDB
-    try {
-      let session = await ChatbotSession.findOne({ session_id: currentSessionId });
-      if (!session) {
-        session = await ChatbotSession.create({
-          session_id: currentSessionId,
-          user_id: userId,
-          title: message.substring(0, 30) + (message.length > 30 ? '...' : ''),
-          selected_source_ids,
-          messages: [],
+    // Save session & message in MongoDB if connected
+    const mongoose = require('mongoose');
+    if (mongoose.connection.readyState === 1) {
+      try {
+        let session = await ChatbotSession.findOne({ session_id: currentSessionId });
+        if (!session) {
+          session = await ChatbotSession.create({
+            session_id: currentSessionId,
+            user_id: userId,
+            title: message.substring(0, 30) + (message.length > 30 ? '...' : ''),
+            selected_source_ids,
+            messages: [],
+          });
+        }
+
+        session.messages.push({
+          id: uuidv4(),
+          role: 'user',
+          content: message,
+          sources_used: [],
+          timestamp: new Date(),
         });
+
+        session.messages.push({
+          id: uuidv4(),
+          role: 'assistant',
+          content: responseText,
+          sources_used: sourcesUsed,
+          timestamp: new Date(),
+        });
+
+        session.updated_at = new Date();
+        await session.save();
+      } catch (dbErr) {
+        console.warn('[ChatbotController] MongoDB session persistence skipped:', dbErr.message);
       }
-
-      session.messages.push({
-        id: uuidv4(),
-        role: 'user',
-        content: message,
-        sources_used: [],
-        timestamp: new Date(),
-      });
-
-      session.messages.push({
-        id: uuidv4(),
-        role: 'assistant',
-        content: responseText,
-        sources_used: sourcesUsed,
-        timestamp: new Date(),
-      });
-
-      session.updated_at = new Date();
-      await session.save();
-    } catch (dbErr) {
-      console.error('[ChatbotController] Failed to persist session to MongoDB:', dbErr.message);
     }
 
     return res.status(200).json({

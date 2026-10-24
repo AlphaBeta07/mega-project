@@ -13,32 +13,32 @@
 }
 
 .nr-modal {
-  background: #141720;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--surface-primary, #141720);
+  border: 1px solid var(--border-default);
   border-radius: 20px;
   width: 100%;
   max-width: 820px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
-  color: #F3F4F6;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+  color: var(--text-primary);
   overflow: hidden;
 }
 
 .nr-header {
   padding: 20px 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--border-default);
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  background: rgba(22, 26, 36, 0.8);
+  background: var(--surface-secondary, rgba(22, 26, 36, 0.8));
 }
 
 .nr-badge {
-  background: #F59E0B;
-  color: #000;
+  background: var(--accent-primary, #F59E0B);
+  color: var(--accent-contrast, #000);
   font-weight: 800;
   font-size: 0.75rem;
   padding: 2px 8px;
@@ -50,14 +50,14 @@
 .nr-title {
   font-size: 1.35rem;
   font-weight: 700;
-  color: #FFFFFF;
+  color: var(--text-primary);
   line-height: 1.3;
 }
 
 .nr-close-btn {
-  background: rgba(255, 255, 255, 0.08);
-  border: none;
-  color: #9CA3AF;
+  background: var(--surface-secondary, rgba(255, 255, 255, 0.08));
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
   width: 36px;
   height: 36px;
   border-radius: 50%;
@@ -70,8 +70,8 @@
 }
 
 .nr-close-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: #FFFFFF;
+  background: var(--hover-bg, rgba(255, 255, 255, 0.15));
+  color: var(--text-primary);
 }
 
 .nr-body {
@@ -87,10 +87,10 @@
   align-items: center;
   gap: 16px;
   font-size: 0.85rem;
-  color: #9CA3AF;
+  color: var(--text-muted);
   flex-wrap: wrap;
   padding-bottom: 16px;
-  border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+  border-bottom: 1px dashed var(--border-default);
 }
 
 .nr-meta-item {
@@ -102,7 +102,7 @@
 .nr-section-title {
   font-size: 1rem;
   font-weight: 700;
-  color: #F59E0B;
+  color: var(--accent-primary, #F59E0B);
   margin-bottom: 10px;
   display: flex;
   align-items: center;
@@ -110,13 +110,13 @@
 }
 
 .nr-box {
-  background: rgba(23, 27, 38, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--surface-secondary, rgba(23, 27, 38, 0.7));
+  border: 1px solid var(--border-subtle);
   border-radius: 12px;
   padding: 16px;
   font-size: 0.9rem;
   line-height: 1.6;
-  color: #D1D5DB;
+  color: var(--text-secondary);
 }
 
 .nr-list {
@@ -128,8 +128,10 @@
 }
 
 .nr-pyq-item {
-  background: rgba(30, 35, 48, 0.6);
-  border-left: 3px solid #F59E0B;
+  background: var(--surface-secondary, rgba(30, 35, 48, 0.6));
+  border-left: 3px solid var(--accent-primary, #F59E0B);
+  border: 1px solid var(--border-subtle);
+  border-left-width: 3px;
   padding: 12px 16px;
   border-radius: 0 8px 8px 0;
   margin-bottom: 12px;
@@ -137,18 +139,18 @@
 
 .nr-pyq-q {
   font-weight: 600;
-  color: #FFFFFF;
+  color: var(--text-primary);
   margin-bottom: 6px;
 }
 
 .nr-pyq-ans {
   font-size: 0.85rem;
-  color: #9CA3AF;
+  color: var(--text-secondary);
 }
 
 .nr-pyq-year {
   font-size: 0.75rem;
-  color: #F59E0B;
+  color: var(--accent-primary, #F59E0B);
   font-weight: 700;
   float: right;
 }

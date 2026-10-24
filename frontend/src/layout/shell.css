@@ -29,7 +29,7 @@
   /* Subtle backdrop blur for depth without heavy glass effect */
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  background-color: rgba(17, 22, 34, 0.88); /* --color-neutral-900 @ 88% */
+  background-color: var(--color-bg-surface-glass, rgba(17, 22, 34, 0.88));
 }
 
 /* ── Main content area ──────────────────────────────────────── */

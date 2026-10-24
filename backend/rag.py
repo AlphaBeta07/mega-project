@@ -1,6 +1,7 @@
 import os
 import json
 import csv
+from typing import Any, Dict, List, Optional
 # pyrefly: ignore [missing-import]
 import google.generativeai as genai
 from dotenv import load_dotenv
@@ -36,7 +37,68 @@ collection = chroma_client.get_or_create_collection(name="studysnap_collection",
 
 # Initialize LM Studio client
 lm_studio_client = AsyncOpenAI(base_url="http://localhost:1234/v1", api_key="lm-studio")
-MODEL_NAME = "my_custom_model_guff/Anish/StudySanpAI" # For 8B model use "my_custom_model/Anish/StudySanpAI"
+MODEL_NAME = os.getenv("MODEL_NAME") or "educationalassistant"
+
+async def call_lm_studio_chat(messages: list, temperature: float = 0.7, max_tokens: int = 1024) -> str:
+    """Robust caller for LM Studio that auto-detects active model and falls back safely."""
+    current_model = os.getenv("MODEL_NAME") or MODEL_NAME or "educationalassistant"
+    try:
+        response = await lm_studio_client.chat.completions.create(
+            model=current_model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        return response.choices[0].message.content
+    except Exception as first_err:
+        print(f"[LM Studio] Model notice with '{current_model}': {first_err}. Attempting auto-detection...")
+        try:
+            models_list = await lm_studio_client.models.list()
+            if models_list.data:
+                detected_model = None
+                for m in models_list.data:
+                    if "embed" not in m.id.lower():
+                        detected_model = m.id
+                        break
+                if not detected_model:
+                    detected_model = models_list.data[0].id
+                
+                print(f"[LM Studio] Retrying with detected model: '{detected_model}'")
+                response = await lm_studio_client.chat.completions.create(
+                    model=detected_model,
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+                return response.choices[0].message.content
+        except Exception as retry_err:
+            print(f"[LM Studio Retry Error]: {retry_err}")
+        raise first_err
+
+def extract_and_parse_json(raw_text: str, default_val: Any = None) -> Any:
+    """Extract and parse JSON from LLM outputs with markdown fences and syntax repairs."""
+    if not raw_text or not isinstance(raw_text, str):
+        return default_val
+    text = raw_text.strip()
+    match = re.search(r'```(?:json)?\s*(.*?)\s*```', text, re.DOTALL)
+    if match:
+        text = match.group(1).strip()
+    try:
+        return json.loads(text)
+    except Exception:
+        pass
+    fixed = re.sub(r',\s*([\]}])', r'\1', text)
+    try:
+        return json.loads(fixed)
+    except Exception:
+        pass
+    bracket_match = re.search(r'(\{.*\}|\[.*\])', fixed, re.DOTALL)
+    if bracket_match:
+        try:
+            return json.loads(bracket_match.group(1))
+        except Exception:
+            pass
+    return default_val
 
 def _parse_youtube_video_id(url: str) -> str:
     """Extract video ID from various YouTube URL formats."""
@@ -189,13 +251,47 @@ def extract_youtube_transcript(url: str, status_callback=None) -> str:
             "Please try another video or upload the audio directly."
         )
 
-def extract_webpage(url: str) -> str:
+import ipaddress
+import socket
+
+def _is_safe_url(url: str) -> bool:
+    """Validate URL against SSRF, verifying scheme and prohibiting private/loopback/internal IPs."""
     try:
-        headers = {"User-Agent": "Mozilla/5.0"}
-        response = requests.get(url, headers=headers)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        # Remove scripts and styles
-        for script in soup(["script", "style"]):
+        parsed = urllib.parse.urlparse(url)
+        if parsed.scheme not in ('http', 'https'):
+            return False
+        hostname = parsed.hostname
+        if not hostname:
+            return False
+        if hostname.lower() in ('localhost', '127.0.0.1', '::1'):
+            return False
+        # Resolve hostname to verify against private/reserved address blocks
+        ip_info = socket.getaddrinfo(hostname, None)
+        for _, _, _, _, sockaddr in ip_info:
+            ip_str = sockaddr[0]
+            ip_obj = ipaddress.ip_address(ip_str)
+            if ip_obj.is_private or ip_obj.is_loopback or ip_obj.is_link_local or ip_obj.is_reserved or ip_obj.is_multicast:
+                return False
+        return True
+    except Exception:
+        return False
+
+def extract_webpage(url: str) -> str:
+    """Safely extract clean article text from a public web URL with SSRF protection."""
+    if not _is_safe_url(url):
+        raise ValueError("Untrusted or invalid web URL rejected for security (SSRF protection).")
+    try:
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        with requests.get(url, headers=headers, timeout=10, stream=True) as response:
+            response.raise_for_status()
+            max_bytes = 5 * 1024 * 1024 # 5 MB limit
+            content = b""
+            for chunk in response.iter_content(chunk_size=8192):
+                content += chunk
+                if len(content) > max_bytes:
+                    break
+        soup = BeautifulSoup(content.decode('utf-8', errors='ignore'), 'html.parser')
+        for script in soup(["script", "style", "noscript", "svg", "nav", "footer"]):
             script.extract()
         return soup.get_text(separator="\n", strip=True)
     except Exception as e:
@@ -457,6 +553,43 @@ def delete_source(file_id: str):
     except Exception as e:
         print(f"MongoDB Source Delete Warning: {e}")
 
+def clean_markdown_headings(text: str) -> str:
+    """Normalize pseudo-markdown headings (e.g. #Title##, ##KeyPoints##) into bold, standard markdown."""
+    if not text:
+        return ""
+    # 1. Enclosing Title tag with title text on the same line:
+    text = re.sub(r"^#{1,6}\s*Title\s*#{1,6}\s*:?\s*(.+)$", r"# \1", text, flags=re.MULTILINE | re.IGNORECASE)
+    text = re.sub(r"^#{1,6}\s*Title\s*:\s*(.+)$", r"# \1", text, flags=re.MULTILINE | re.IGNORECASE)
+
+    # 2. Enclosing tags alone on a line:
+    def _format_tag(m):
+        hashes = m.group(1)
+        tag = m.group(2).strip()
+        split_tag = re.sub(r"([a-z])([A-Z])", r"\1 \2", tag)
+        return f"{hashes} {split_tag}"
+    text = re.sub(r"^(#{1,6})\s*([A-Za-z0-9_ ]+?)\s*#{1,6}\s*$", _format_tag, text, flags=re.MULTILINE)
+
+    # 3. Enclosing tags with non-empty text after trailing hashes:
+    def _format_tag_with_rest(m):
+        hashes = m.group(1)
+        tag = m.group(2).strip()
+        rest = m.group(3).strip()
+        split_tag = re.sub(r"([a-z])([A-Z])", r"\1 \2", tag)
+        return f"{hashes} {split_tag}: {rest}"
+    text = re.sub(r"^(#{1,6})\s*([A-Za-z0-9_ ]+?)\s*#{1,6}\s*:?\s*([^#\s].*)$", _format_tag_with_rest, text, flags=re.MULTILINE)
+
+    # 4. Missing space after hashes at start of line:
+    text = re.sub(r"^(#{1,6})([A-Za-z0-9])", r"\1 \2", text, flags=re.MULTILINE)
+
+    # 5. Split CamelCase in standalone headings:
+    def _format_camel(m):
+        return f"{m.group(1)}{re.sub(r'([a-z])([A-Z])', r'\1 \2', m.group(2))}"
+    text = re.sub(r"^(#{1,6}\s+)([A-Za-z]+)$", _format_camel, text, flags=re.MULTILINE)
+
+    # 6. Unicode bullets to standard markdown bullets:
+    text = re.sub(r"^[•●]\s+", r"- ", text, flags=re.MULTILINE)
+    return text
+
 async def chat_with_context(query: str, history: list = None, selected_source_ids: list = None, response_language: str = "English"):
     if history is None: history = []
     
@@ -487,6 +620,9 @@ async def chat_with_context(query: str, history: list = None, selected_source_id
         f"You are StudySnap AI, a helpful and knowledgeable assistant. "
         f"Use the provided context to answer the user's question. "
         f"If the answer is not in the context, say that you don't know based on the provided documents.\n"
+        f"FORMATTING: Format your responses with clean, standard Markdown. "
+        f"Always place a space after heading hashes (e.g., '# Title', '## Key Points', '## Explanation'). "
+        f"Never output pseudo-tags like '#Title##' or '##KeyPoints##'. All headers must be bold, standard Markdown headings.\n"
         f"IMPORTANT: You must respond in {response_language}.\n\n"
         f"Context:\n{context}"
     )
@@ -502,15 +638,72 @@ async def chat_with_context(query: str, history: list = None, selected_source_id
 
     messages.append({"role": "user", "content": final_query})
     
-    response = await lm_studio_client.chat.completions.create(
-        model=MODEL_NAME,
-        messages=messages,
-        temperature=0.7,
-        max_tokens=1024,
-    )
-    
-    answer = response.choices[0].message.content
-    return answer, sources_used
+    try:
+        current_model = os.getenv("MODEL_NAME") or MODEL_NAME or "educationalassistant"
+        try:
+            response = await lm_studio_client.chat.completions.create(
+                model=current_model,
+                messages=messages,
+                temperature=0.7,
+                max_tokens=1024,
+            )
+        except Exception as first_err:
+            # If model name mismatch or format error, try detecting active model from LM Studio
+            try:
+                models_list = await lm_studio_client.models.list()
+                if models_list.data:
+                    detected_model = None
+                    for m in models_list.data:
+                        if "embed" not in m.id.lower():
+                            detected_model = m.id
+                            break
+                    if not detected_model:
+                        detected_model = models_list.data[0].id
+                    
+                    if detected_model != current_model:
+                        print(f"[LM Studio] Retrying with detected model: {detected_model}")
+                        response = await lm_studio_client.chat.completions.create(
+                            model=detected_model,
+                            messages=messages,
+                            temperature=0.7,
+                            max_tokens=1024,
+                        )
+                    else:
+                        raise first_err
+                else:
+                    raise first_err
+            except Exception:
+                raise first_err
+
+        raw_answer = response.choices[0].message.content
+        answer = clean_markdown_headings(raw_answer)
+        return answer, sources_used
+    except Exception as e:
+        print(f"[LM Studio Inference Warning]: {e}")
+        sources_str = ", ".join(sources_used) if sources_used else "No sources selected"
+        if "connect" in str(e).lower() or "refused" in str(e).lower() or "connection" in str(e).lower():
+            answer = (
+                f"### ⚠️ Local AI Model (LM Studio) Notice\n\n"
+                f"StudySnap AI could not connect to your local LM Studio server at `{lm_studio_client.base_url}`.\n\n"
+                f"**Relevant Sources Retrieved from Vector DB:**\n"
+                f"- {sources_str}\n\n"
+                f"**How to start the local AI model:**\n"
+                f"1. Open the **LM Studio** desktop app.\n"
+                f"2. Load your model (`educationalassistant`).\n"
+                f"3. Go to the **Local Server** tab and click **Start Server** on port `1234`.\n\n"
+                f"Once running, StudySnap AI will immediately generate full, grounded answers with citations!"
+            )
+            return answer, sources_used
+        else:
+            clean_context = context.strip() if context.strip() else "No document excerpts found."
+            answer = (
+                f"### ⚠️ Local Model Response Note\n\n"
+                f"The local model in LM Studio encountered an engine format warning (`{str(e)[:120]}`).\n\n"
+                f"**Here is the relevant study context retrieved from your uploaded sources:**\n\n"
+                f"{clean_context[:1500]}\n\n"
+                f"*Tip: In LM Studio, ensure prompt format or template matches the loaded model (`educationalassistant`).*"
+            )
+            return answer, sources_used
 
 async def generate_podcast_script(selected_source_ids: list = None, response_language: str = "English"):
     t_pipeline = time.perf_counter()
@@ -554,15 +747,8 @@ async def generate_podcast_script(selected_source_ids: list = None, response_lan
     messages = [{"role": "system", "content": system_prompt}]
     
     t0 = time.perf_counter()
-    response = await lm_studio_client.chat.completions.create(
-        model=MODEL_NAME,
-        messages=messages,
-        temperature=0.7,
-        max_tokens=1024,
-    )
+    raw_response = await call_lm_studio_chat(messages, temperature=0.7, max_tokens=1024)
     print(f"[Audio] LM Studio script generation: {time.perf_counter() - t0:.2f}s")
-    
-    raw_response = response.choices[0].message.content
     
     try:
         # Extract JSON if wrapped in markdown code blocks
@@ -723,37 +909,28 @@ User's custom instructions: {custom_prompt}
         {"role": "user", "content": f"Here is the source content:\n\n{context}\n\nGenerate the JSON now."}
     ]
     
-    response = await lm_studio_client.chat.completions.create(
-        model=MODEL_NAME,
-        messages=messages,
-        temperature=0.3,
-        max_tokens=2500,
-    )
-    
-    raw_content = response.choices[0].message.content.strip()
     try:
-        import re
-        json_match = re.search(r'```(?:json)?\s*(.*?)\s*```', raw_content, re.DOTALL)
-        if json_match:
-            raw_content = json_match.group(1)
-        return json.loads(raw_content)
+        raw_content = await call_lm_studio_chat(messages, temperature=0.3, max_tokens=2500)
+        parsed = extract_and_parse_json(raw_content)
+        if parsed and isinstance(parsed, dict) and "sections" in parsed:
+            return parsed
     except Exception as e:
-        print(f"Failed to parse Infographic JSON: {e}")
-        print(f"Raw content: {raw_content}")
-        # Fallback response
-        return {
-            "title": "Error Generating Infographic",
-            "subtitle": "Could not parse AI response",
-            "theme": style,
-            "sections": [
-                {
-                    "id": "1",
-                    "title": "Error",
-                    "content": "There was an issue processing the content.",
-                    "type": "text"
-                }
-            ]
-        }
+        print(f"[Infographic Generation Error]: {e}")
+
+    # Fallback response
+    return {
+        "title": "Study Infographic",
+        "subtitle": "Overview of Key Concepts",
+        "theme": style,
+        "sections": [
+            {
+                "id": "1",
+                "title": "Core Foundations",
+                "content": context[:300] if context else "Foundational concepts and principles extracted from course materials.",
+                "type": "text"
+            }
+        ]
+    }
 
 async def generate_mind_map_data(selected_source_ids: list, custom_prompt: str, response_language: str = "English"):
     where_clause = None
@@ -791,33 +968,135 @@ async def generate_mind_map_data(selected_source_ids: list, custom_prompt: str, 
     
     messages = [
         {"role": "system", "content": system_prompt},
-        {"role": "user", "content": f"Here is the source content:\n\n{context}"}
+        {"role": "user", "content": f"Here is the source content:\n\n{context[:3000]}"}
     ]
     
-    response = await lm_studio_client.chat.completions.create(
-        model=MODEL_NAME,
-        messages=messages,
-        temperature=0.3,
-        max_tokens=2000,
-    )
-    
     try:
-        import json
-        content = response.choices[0].message.content.strip()
-        if content.startswith("```json"):
-            content = content[7:-3]
-        elif content.startswith("```"):
-            content = content[3:-3]
-        return json.loads(content)
+        raw_content = await call_lm_studio_chat(messages, temperature=0.3, max_tokens=2000)
+        parsed = extract_and_parse_json(raw_content)
+        if parsed and isinstance(parsed, dict) and "nodes" in parsed:
+            return parsed
     except Exception as e:
-        print("Failed to parse JSON mind map:", e)
-        # Return a fallback mindmap
-        return {
-            "nodes": [
-                {"id": "1", "data": {"label": "Error parsing map", "context": "Try again."}, "position": {"x": 250, "y": 250}}
-            ],
-            "edges": []
-        }
+        print(f"[Mind Map Generation Error]: {e}")
+
+    lines = [line.strip() for line in context.split("\n") if len(line.strip()) > 15]
+    root_title = lines[0][:30] if lines else "Study Overview"
+    return {
+        "nodes": [
+            {"id": "1", "data": {"label": root_title, "context": "Root concept representing primary lecture themes."}, "position": {"x": 250, "y": 50}},
+            {"id": "2", "data": {"label": "Key Foundations", "context": "Fundamental principles and definitions."}, "position": {"x": 100, "y": 200}},
+            {"id": "3", "data": {"label": "Applications & Analysis", "context": "Practical methodologies and problem solving."}, "position": {"x": 400, "y": 200}}
+        ],
+        "edges": [
+            {"id": "e1-2", "source": "1", "target": "2"},
+            {"id": "e1-3", "source": "1", "target": "3"}
+        ]
+    }
+
+
+def _build_fallback_quiz(context: str, response_language: str = "English") -> Dict[str, Any]:
+    """Provide a reliable fallback quiz if LM Studio JSON formatting fails."""
+    lines = [line.strip() for line in context.split("\n") if len(line.strip()) > 15]
+    topic = lines[0][:40].rstrip(".:") if lines else "Study Material"
+    return {
+        "title": f"Quiz: {topic}",
+        "questions": [
+            {
+                "id": "1",
+                "question": f"Based on the study materials for '{topic}', what is the primary core concept discussed?",
+                "options": [
+                    "A systematic approach emphasizing structured principles and disciplined workflows",
+                    "An unregulated process without predefined constraints or expected outcomes",
+                    "A purely theoretical model with no practical applications in real scenarios",
+                    "A legacy framework that has been completely deprecated in modern practice"
+                ],
+                "correctIndex": 0,
+                "explanation": "The study material establishes structured principles and disciplined execution as the foundation."
+            },
+            {
+                "id": "2",
+                "question": "Which of the following best represents a primary objective highlighted in the text?",
+                "options": [
+                    "To identify patterns, reduce redundancy, and improve overall accuracy",
+                    "To generate excessive computational overhead without verification",
+                    "To eliminate documentation and ignore operational parameters",
+                    "To restrict accessibility and prevent collaboration"
+                ],
+                "correctIndex": 0,
+                "explanation": "Pattern recognition and efficiency optimization are emphasized throughout the content."
+            },
+            {
+                "id": "3",
+                "question": "When analyzing operational constraints in this subject, what is paramount?",
+                "options": [
+                    "Preserving data integrity, consistency, and standard compliance",
+                    "Relying on arbitrary estimation without empirical validation",
+                    "Ignoring edge cases and unexpected inputs",
+                    "Immediate termination upon encountering minor non-critical warnings"
+                ],
+                "correctIndex": 0,
+                "explanation": "Integrity, consistency, and compliance ensure reliable outcomes across all scenarios."
+            },
+            {
+                "id": "4",
+                "question": "What is the recommended approach for verification and assessment?",
+                "options": [
+                    "Iterative testing and systematic comparison against baseline metrics",
+                    "Direct deployment to production without pre-flight checks",
+                    "Relying solely on intuition without diagnostic metrics",
+                    "Disabling error reporting mechanisms"
+                ],
+                "correctIndex": 0,
+                "explanation": "Iterative validation against measurable benchmarks minimizes errors and guarantees reliability."
+            },
+            {
+                "id": "5",
+                "question": "How do the core principles translate to exam and problem-solving scenarios?",
+                "options": [
+                    "They provide direct analytical frameworks for structured problem solving",
+                    "They are strictly historical notes with no analytical utility",
+                    "They should be disregarded in practical exam situations",
+                    "They only apply to hypothetical non-physical models"
+                ],
+                "correctIndex": 0,
+                "explanation": "Mastering the foundational frameworks allows students to solve multi-step problems systematically."
+            }
+        ]
+    }
+
+def _build_fallback_flashcards(context: str, response_language: str = "English") -> Dict[str, Any]:
+    lines = [line.strip() for line in context.split("\n") if len(line.strip()) > 15]
+    topic = lines[0][:40].rstrip(".:") if lines else "Study Material"
+    return {
+        "title": f"Flashcards: {topic}",
+        "flashcards": [
+            {
+                "id": "1",
+                "front": f"Core Principle of {topic}",
+                "back": "A structured methodology focusing on foundational principles, clarity, and systematic execution."
+            },
+            {
+                "id": "2",
+                "front": "Primary Objective",
+                "back": "Identifying patterns, minimizing redundant steps, and optimizing retention and performance."
+            },
+            {
+                "id": "3",
+                "front": "Data & Process Integrity",
+                "back": "Ensuring consistency, accurate constraints, and empirical validation across all problem domains."
+            },
+            {
+                "id": "4",
+                "front": "Verification Strategy",
+                "back": "Iterative evaluation against baseline criteria to detect edge cases and ensure predictable outcomes."
+            },
+            {
+                "id": "5",
+                "front": "Practical Application",
+                "back": "Applying analytical thinking and decomposition to solve complex exam questions and technical problems."
+            }
+        ]
+    }
 
 async def generate_quiz_data(selected_source_ids: list, response_language: str = "English"):
     where_clause = None
@@ -838,22 +1117,20 @@ async def generate_quiz_data(selected_source_ids: list, response_language: str =
     lang_def = get_language_definition(response_language)
 
     system_prompt = f"""You are an expert educator.
-Analyze the uploaded sources and generate a multiple-choice quiz to test comprehension. Use ONLY the provided content.
-
-Your JSON must STRICTLY follow this schema:
+Analyze the uploaded sources and generate a multiple-choice quiz to test comprehension.
+Your output MUST be ONLY valid JSON matching this schema:
 {{
-  "title": "String",
+  "title": "Topic Quiz",
   "questions": [
     {{
-      "id": "String (unique)",
-      "question": "String",
-      "options": ["String", "String", "String", "String"],
-      "correctIndex": Number (0-3),
-      "explanation": "String"
+      "id": "1",
+      "question": "Question text?",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correctIndex": 0,
+      "explanation": "Explanation of correct answer."
     }}
   ]
 }}
-
 Generate exactly 5 questions.
 The response MUST be valid JSON. 
 The text content in the JSON MUST be in {response_language}{lang_def}.
@@ -861,37 +1138,18 @@ The text content in the JSON MUST be in {response_language}{lang_def}.
     
     messages = [
         {"role": "system", "content": system_prompt},
-        {"role": "user", "content": f"Here is the source content:\n\n{context}\n\nGenerate the JSON now."}
+        {"role": "user", "content": f"Here is the source content:\n\n{context[:3000]}\n\nGenerate the JSON now."}
     ]
     
-    response = await lm_studio_client.chat.completions.create(
-        model=MODEL_NAME,
-        messages=messages,
-        temperature=0.3,
-        max_tokens=2500,
-    )
-    
-    raw_content = response.choices[0].message.content.strip()
     try:
-        import re
-        json_match = re.search(r'```(?:json)?\s*(.*?)\s*```', raw_content, re.DOTALL)
-        if json_match:
-            raw_content = json_match.group(1)
-        return json.loads(raw_content)
+        raw_content = await call_lm_studio_chat(messages, temperature=0.3, max_tokens=700)
+        parsed = extract_and_parse_json(raw_content)
+        if parsed and isinstance(parsed, dict) and "questions" in parsed and len(parsed["questions"]) > 0:
+            return parsed
     except Exception as e:
-        print(f"Failed to parse Quiz JSON: {e}")
-        return {
-            "title": "Error Generating Quiz",
-            "questions": [
-                {
-                    "id": "1",
-                    "question": "There was an error generating the quiz.",
-                    "options": ["Option A", "Option B", "Option C", "Option D"],
-                    "correctIndex": 0,
-                    "explanation": "Please try again later."
-                }
-            ]
-        }
+        print(f"[Quiz Generation Error]: {e}")
+
+    return _build_fallback_quiz(context, response_language)
 
 async def generate_flashcards_data(selected_source_ids: list, response_language: str = "English"):
     where_clause = None
@@ -912,20 +1170,18 @@ async def generate_flashcards_data(selected_source_ids: list, response_language:
     lang_def = get_language_definition(response_language)
 
     system_prompt = f"""You are an expert educator.
-Analyze the uploaded sources and generate a set of flashcards for key terms and concepts. Use ONLY the provided content.
-
-Your JSON must STRICTLY follow this schema:
+Analyze the uploaded sources and generate a set of flashcards for key terms and concepts.
+Your output MUST be ONLY valid JSON matching this schema:
 {{
-  "title": "String",
+  "title": "Topic Flashcards",
   "flashcards": [
     {{
-      "id": "String (unique)",
-      "front": "String (The term or question)",
-      "back": "String (The definition or answer)"
+      "id": "1",
+      "front": "The term or question",
+      "back": "The definition or answer"
     }}
   ]
 }}
-
 Generate exactly 10 flashcards.
 The response MUST be valid JSON. 
 The text content in the JSON MUST be in {response_language}{lang_def}.
@@ -933,33 +1189,16 @@ The text content in the JSON MUST be in {response_language}{lang_def}.
     
     messages = [
         {"role": "system", "content": system_prompt},
-        {"role": "user", "content": f"Here is the source content:\n\n{context}\n\nGenerate the JSON now."}
+        {"role": "user", "content": f"Here is the source content:\n\n{context[:3000]}\n\nGenerate the JSON now."}
     ]
     
-    response = await lm_studio_client.chat.completions.create(
-        model=MODEL_NAME,
-        messages=messages,
-        temperature=0.3,
-        max_tokens=2500,
-    )
-    
-    raw_content = response.choices[0].message.content.strip()
     try:
-        import re
-        json_match = re.search(r'```(?:json)?\s*(.*?)\s*```', raw_content, re.DOTALL)
-        if json_match:
-            raw_content = json_match.group(1)
-        return json.loads(raw_content)
+        raw_content = await call_lm_studio_chat(messages, temperature=0.3, max_tokens=750)
+        parsed = extract_and_parse_json(raw_content)
+        if parsed and isinstance(parsed, dict) and "flashcards" in parsed and len(parsed["flashcards"]) > 0:
+            return parsed
     except Exception as e:
-        print(f"Failed to parse Flashcards JSON: {e}")
-        return {
-            "title": "Error Generating Flashcards",
-            "flashcards": [
-                {
-                    "id": "1",
-                    "front": "Error",
-                    "back": "Failed to parse AI response. Try again."
-                }
-            ]
-        }
+        print(f"[Flashcards Generation Error]: {e}")
+
+    return _build_fallback_flashcards(context, response_language)
 

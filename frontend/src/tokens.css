@@ -310,4 +310,58 @@
   --border-color:    var(--color-border-default);
   --border-light:    rgba(255, 255, 255, 0.07);
   --font-main:       var(--font-body);
+
+  /* ──────────────────────────────────────────
+     STANDARDIZED WORKSPACE TOKENS
+     Comprehensive design tokens for entire application workspace
+     ────────────────────────────────────────── */
+  --app-bg:                 var(--color-bg-base);
+  --surface-primary:        var(--color-bg-surface);
+  --surface-secondary:      var(--color-bg-elevated);
+  --surface-elevated:       var(--color-bg-elevated);
+  --surface-input:          var(--color-bg-input);
+  --text-primary:           var(--color-text-primary);
+  --text-secondary:         var(--color-text-secondary);
+  --text-muted:             var(--color-text-muted);
+  --border-default:         var(--color-border-default);
+  --border-subtle:          var(--color-border-subtle);
+  --accent-primary:         var(--color-accent-500);
+  --accent-hover:           var(--color-accent-400);
+  --accent-contrast:        var(--color-cta-text);
+  --button-primary-bg:      var(--color-cta-bg);
+  --button-primary-text:    var(--color-cta-text);
+  --button-secondary-bg:    var(--color-bg-elevated);
+  --hover-bg:               var(--color-bg-overlay);
+  --selected-bg:            var(--color-nav-active-bg);
+  --focus-ring:             var(--color-border-focus);
+  --success:                var(--color-success);
+  --warning:                var(--color-warning);
+  --danger:                 var(--color-error);
+  --chat-user-bg:           var(--color-bg-elevated);
+  --chat-assistant-bg:      transparent;
+  --chat-composer-bg:       var(--color-bg-input);
+  --source-card-bg:         var(--color-bg-elevated);
+  --sidebar-bg:             var(--color-bg-surface);
+  --scrollbar-thumb:        var(--color-scrollbar-thumb);
+
+  /* Tool Card Accent Palette */
+  --card-pyq-accent:        #F59E0B;
+  --card-audionotes-accent:  #A855F7;
+  --card-audio-accent:       #3B82F6;
+  --card-mindmap-accent:     #EC4899;
+  --card-reports-accent:     #EAB308;
+  --card-flashcards-accent:  #F43F5E;
+  --card-quiz-accent:        #10B981;
+
+  /* ──────────────────────────────────────────
+     PARTICLE BACKGROUND TOKENS
+     Theme-aware interactive particle animation tokens
+     ────────────────────────────────────────── */
+  --particle-color-1:       rgb(59, 130, 246);
+  --particle-color-2:       rgb(99, 102, 241);
+  --particle-color-3:       rgb(139, 92, 246);
+  --particle-color-4:       rgb(236, 72, 153);
+  --particle-opacity:       0.55;
+  --particle-glow:          0.22;
 }
+

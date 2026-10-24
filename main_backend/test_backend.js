@@ -85,7 +85,7 @@ const runTests = async () => {
         name: 'Aarav Gupta',
         email: testEmail,
         password: 'password123',
-        college: 'IIT Bombay',
+        college: 'DKTE',
         branch: 'Computer Science',
         semester: 'Sem 5',
       }

@@ -1,0 +1,549 @@
+{
+  "users": [
+    {
+      "user_id": "usr_rohan_demo",
+      "name": "Rohan Sharma",
+      "email": "rohan.sharma@iitb.ac.in",
+      "password_hash": "$2a$10$vY3Z6a6v8D5d7tV3QZzMhO.5X5Z7W8P8Q9R0S1T2U3V4W5X6Y7Z8a",
+      "role": "student",
+      "college": "DKTE",
+      "branch": "Computer Science",
+      "semester": "Sem 5",
+      "created_at": "2026-10-17T07:05:43.144Z"
+    },
+    {
+      "name": "Aarav Gupta",
+      "email": "test_student_1792220743277@studysnap.edu",
+      "password_hash": "$2a$10$eJL5G.J0wyqw848lqoWKX.To8yIWV1k.RgpOMGzkG5Dk.9bs65MmG",
+      "role": "student",
+      "college": "DKTE",
+      "branch": "Computer Science",
+      "semester": "Sem 5",
+      "user_id": "usr_1792220743350_tkmc6",
+      "created_at": "2026-10-17T07:05:43.350Z"
+    },
+    {
+      "name": "Aarav Gupta",
+      "email": "test_student_1792220898575@studysnap.edu",
+      "password_hash": "$2a$10$Yqjqm62EmCtVHlWwJsdhD.f0vbMq91RXHWOw7ZRNcuPjCuDrYTp3q",
+      "role": "student",
+      "college": "DKTE",
+      "branch": "Computer Science",
+      "semester": "Sem 5",
+      "user_id": "usr_1792220898643_grayf",
+      "created_at": "2026-10-17T07:08:18.643Z"
+    },
+    {
+      "name": "Aarav Gupta",
+      "email": "test_student_1792220935104@studysnap.edu",
+      "password_hash": "$2a$10$zQBY2dNYQkswq6Ur7NSGM.zql6qzlVQvZXh3OYKf7WXqp36Chdu6S",
+      "role": "student",
+      "college": "DKTE",
+      "branch": "Computer Science",
+      "semester": "Sem 5",
+      "user_id": "usr_1792220935178_lkqom",
+      "created_at": "2026-10-17T07:08:55.178Z"
+    },
+    {
+      "name": "Aarav Gupta",
+      "email": "test_student_1792221530793@studysnap.edu",
+      "password_hash": "$2a$10$z8KpI/V3uVUzTxtdSVRVje3sgwrDThP4n.KV6hx51BYiN2AvaJW/.",
+      "role": "student",
+      "college": "DKTE",
+      "branch": "Computer Science",
+      "semester": "Sem 5",
+      "user_id": "usr_1792221530863_4g91b",
+      "created_at": "2026-10-17T07:18:50.863Z"
+    },
+    {
+      "name": "Aarav Gupta",
+      "email": "test_student_1792222787696@studysnap.edu",
+      "password_hash": "$2a$10$7GCk0a3M3IEyKQSC4w4vRuWNx9AKG3s7BMm5lN1DZJi4qSvEknKQa",
+      "role": "student",
+      "college": "DKTE",
+      "branch": "Computer Science",
+      "semester": "Sem 5",
+      "user_id": "usr_1792222787766_nt0lj",
+      "created_at": "2026-10-17T07:39:47.766Z"
+    }
+  ],
+  "notes": [
+    {
+      "note_id": "note-1",
+      "user_id": "usr_rohan_demo",
+      "code": "CS302",
+      "subject": "Operating Systems",
+      "chapter": "Module 1: Process Scheduling & Deadlocks",
+      "title": "Operating Systems — Process Scheduling & Deadlocks",
+      "college": "DKTE",
+      "branch": "Computer Science",
+      "semester": "Sem 5",
+      "note_type": "Lecture Notes",
+      "description": "Complete breakdown of CPU scheduling algorithms (FCFS, SJF, Round Robin), Banker's algorithm for deadlock avoidance with resource allocation graph examples.",
+      "author": "Rohan Sharma (DKTE)",
+      "likes_count": 142,
+      "read_time": "8 min read",
+      "formatted_content": "# Operating Systems — Process Scheduling & Deadlocks\n\n## Overview\nThis comprehensive guide covers kernel process management, CPU scheduler implementations in Linux, deadlock conditions (Coffman conditions), and Banker algorithm matrices.\n\n## Key Concepts\n- FCFS, SJF, SRTF, and Round Robin Gantt Chart examples\n- Multi-level Queue Scheduling & Feedback Queues\n- 4 Necessary Conditions for Deadlock: Mutual Exclusion, Hold & Wait, No Preemption, Circular Wait\n- Resource Allocation Graph (RAG) reduction and Banker's Safety Algorithm\n\n## Essential Formulas\n- Turnaround Time (TAT) = Completion Time - Arrival Time\n- Waiting Time (WT) = Turnaround Time - Burst Time\n- Need[i][j] = Max[i][j] - Allocation[i][j]",
+      "summary": "Process scheduling algorithms, Gantt charts, Coffman deadlock conditions, and Banker algorithm calculations.",
+      "keywords": [
+        "Process",
+        "Scheduling",
+        "Deadlock",
+        "Banker Algorithm",
+        "Gantt Chart"
+      ],
+      "duration": 45,
+      "full_content": {
+        "overview": "This comprehensive guide covers kernel process management, CPU scheduler implementations in Linux, deadlock conditions (Coffman conditions), and Banker algorithm matrices.",
+        "key_topics": [
+          "FCFS, SJF, SRTF, and Round Robin Gantt Chart examples",
+          "Multi-level Queue Scheduling & Feedback Queues",
+          "4 Necessary Conditions for Deadlock: Mutual Exclusion, Hold & Wait, No Preemption, Circular Wait",
+          "Resource Allocation Graph (RAG) reduction and Banker's Safety Algorithm"
+        ],
+        "pyqs": [
+          {
+            "question": "Consider 5 processes P0 through P4 with Allocation and Max matrices. Calculate the Need matrix and verify if the system is in a safe state.",
+            "year": "Endsem 2025",
+            "solution": "Need = Max - Allocation. System is in safe state with sequence <P1, P3, P4, P0, P2>."
+          },
+          {
+            "question": "Differentiate between preemptive and non-preemptive scheduling with time-quantum trade-offs.",
+            "year": "Midsem 2024",
+            "solution": "Preemptive scheduling interrupts running tasks when higher priority arrives. Quantum too small increases context switch overhead; quantum too large degrades to FCFS."
+          }
+        ],
+        "formulas": [
+          "Turnaround Time (TAT) = Completion Time - Arrival Time",
+          "Waiting Time (WT) = Turnaround Time - Burst Time",
+          "Need[i][j] = Max[i][j] - Allocation[i][j]"
+        ]
+      },
+      "is_public": true,
+      "created_at": "2026-03-10T10:00:00.000Z"
+    },
+    {
+      "note_id": "note-2",
+      "user_id": "seed_user_2",
+      "code": "CS201",
+      "subject": "Data Structures",
+      "chapter": "Module 3: AVL Tree Rotations & Red-Black Trees",
+      "title": "Data Structures — AVL Tree Rotations & Red-Black Trees",
+      "college": "PES University",
+      "branch": "Computer Science",
+      "semester": "Sem 3",
+      "note_type": "Formula Sheet",
+      "description": "Complete step-by-step balance factor derivations for Single (LL, RR) and Double (LR, RL) rotations with time complexity proofs and code templates.",
+      "author": "Priya Verma (PES University)",
+      "likes_count": 215,
+      "read_time": "12 min read",
+      "formatted_content": "# Data Structures — AVL Trees & Balanced BSTs\n\n## Overview\nDetailed visual cheat-sheet and code notes for self-balancing binary search trees, balance factor computation, and Red-Black tree insertion re-coloring rules.\n\n## Key Topics\n- Balance Factor = Height(Left Subtree) - Height(Right Subtree) in {-1, 0, +1}\n- Single Rotations: LL Rotation (Right Rotate), RR Rotation (Left Rotate)\n- Double Rotations: LR Rotation (Left-Right), RL Rotation (Right-Left)\n- Red-Black Tree Properties: Root is black, No adjacent red nodes, Black-height equality",
+      "summary": "Self-balancing BSTs, AVL tree single and double rotations, and Red-Black tree coloring rules.",
+      "keywords": [
+        "AVL Tree",
+        "BST",
+        "Rotations",
+        "Red-Black Tree",
+        "Balance Factor"
+      ],
+      "duration": 35,
+      "full_content": {
+        "overview": "Detailed visual cheat-sheet and code notes for self-balancing binary search trees, balance factor computation, and Red-Black tree insertion re-coloring rules.",
+        "key_topics": [
+          "Balance Factor = Height(Left Subtree) - Height(Right Subtree) ∈ {-1, 0, +1}",
+          "Single Rotations: LL Rotation (Right Rotate), RR Rotation (Left Rotate)",
+          "Double Rotations: LR Rotation (Left-Right), RL Rotation (Right-Left)",
+          "Red-Black Tree Properties: Root is black, No adjacent red nodes, Black-height equality"
+        ],
+        "pyqs": [
+          {
+            "question": "Insert keys 14, 17, 11, 7, 53, 4, 13 into an empty AVL tree and show rebalancing at each step.",
+            "year": "Endsem 2024",
+            "solution": "Inserting 4 triggers LL imbalance at node 11. Right rotate at 11 yields balanced tree with root 11."
+          }
+        ],
+        "formulas": [
+          "Height of AVL tree h <= 1.44 log2(N + 2)",
+          "Search / Insert / Delete Time Complexity = O(log N)"
+        ]
+      },
+      "is_public": true,
+      "created_at": "2026-03-08T14:30:00.000Z"
+    },
+    {
+      "note_id": "note-3",
+      "user_id": "seed_user_3",
+      "code": "EC401",
+      "subject": "Digital Signal Processing",
+      "chapter": "Module 4: FFT Decimation Algorithm",
+      "title": "Digital Signal Processing — Fast Fourier Transform (FFT) Decimation",
+      "college": "IIT Delhi",
+      "branch": "Electronics & Communication",
+      "semester": "Sem 5",
+      "note_type": "Lecture Notes",
+      "description": "Radix-2 DIT-FFT butterfly computation formulas, twiddle factor properties, and step-by-step 8-point DFT problem with complete signal flow diagram.",
+      "author": "Ananya Sen (IIT Delhi)",
+      "likes_count": 98,
+      "read_time": "15 min read",
+      "formatted_content": "# Digital Signal Processing — Fast Fourier Transform (FFT)\n\n## Overview\nComplete mathematical formulation of Cooley-Tukey Radix-2 Decimation-In-Time (DIT) FFT, computational complexity comparison O(N log N) vs O(N^2), and twiddle factor symmetries.",
+      "summary": "Radix-2 DIT-FFT butterfly diagrams and twiddle factor periodicity.",
+      "keywords": [
+        "FFT",
+        "DFT",
+        "Twiddle Factor",
+        "Butterflies",
+        "Signal Processing"
+      ],
+      "duration": 50,
+      "full_content": {
+        "overview": "Complete mathematical formulation of Cooley-Tukey Radix-2 Decimation-In-Time (DIT) FFT, computational complexity comparison O(N log N) vs O(N^2), and twiddle factor symmetries.",
+        "key_topics": [
+          "DFT direct computation: N^2 complex multiplications vs FFT: (N/2) log2 N",
+          "Twiddle Factor W_N^k = e^(-j 2 pi k / N)",
+          "Symmetry: W_N^(k + N/2) = -W_N^k; Periodicity: W_N^(k + N) = W_N^k"
+        ],
+        "pyqs": [
+          {
+            "question": "Compute 8-point DFT of sequence x(n) = {1, 2, 1, 0, 0, 0, 0, 0} using Radix-2 DIT-FFT algorithm.",
+            "year": "Endsem 2025",
+            "solution": "Bit reverse input array to {x(0), x(4), x(2), x(6), x(1), x(5), x(3), x(7)}. Perform 3 stages of butterfly computation."
+          }
+        ],
+        "formulas": [
+          "X(k) = sum_{n=0}^{N-1} x(n) * W_N^{n*k}"
+        ]
+      },
+      "is_public": true,
+      "created_at": "2026-03-05T09:15:00.000Z"
+    },
+    {
+      "note_id": "note-4",
+      "user_id": "seed_user_4",
+      "code": "CS504",
+      "subject": "Database Systems",
+      "chapter": "Module 2: 3NF & BCNF Normalization",
+      "title": "Database Management — 3NF & BCNF Normalization Solved PYQs",
+      "college": "BITS Pilani",
+      "branch": "Computer Science",
+      "semester": "Sem 5",
+      "note_type": "PYQ & Solutions",
+      "description": "Step-by-step resolution of functional dependencies, minimal cover finding, 3NF and BCNF decomposition with lossless join and dependency preservation proofs.",
+      "author": "Sneha Reddy (BITS Pilani)",
+      "likes_count": 180,
+      "read_time": "10 min read",
+      "formatted_content": "# Database Management — Normalization & Functional Dependencies\n\nMaster relational schema normalization with practical algorithms to test 2NF, 3NF, BCNF, and dependency preserving decompositions.",
+      "summary": "Functional dependencies, 3NF synthesis, and BCNF decomposition.",
+      "keywords": [
+        "Normalization",
+        "3NF",
+        "BCNF",
+        "Functional Dependency",
+        "DBMS"
+      ],
+      "duration": 40,
+      "full_content": {
+        "overview": "Master relational schema normalization with practical algorithms to test 2NF, 3NF, BCNF, and dependency preserving decompositions.",
+        "key_topics": [
+          "Candidate Key determination using Attribute Closure",
+          "Minimal Cover / Canonical Cover calculation",
+          "3NF Synthesis Algorithm",
+          "BCNF Decomposition Algorithm (Checking X -> Y where X is superkey)"
+        ],
+        "pyqs": [
+          {
+            "question": "Given R(A,B,C,D,E) with F = {A->BC, CD->E, B->D, E->A}. Find candidate keys and decompose R into BCNF.",
+            "year": "Endsem 2024",
+            "solution": "Candidate keys are {A}, {E}, {BC}. Relation is in 3NF but not BCNF due to B->D. Decomposed into R1(B,D) and R2(A,B,C,E)."
+          }
+        ],
+        "formulas": []
+      },
+      "is_public": true,
+      "created_at": "2026-03-01T16:45:00.000Z"
+    },
+    {
+      "user_id": "usr_1792220743350_tkmc6",
+      "subject": "Operating Systems",
+      "chapter": "Virtual Memory & Paging",
+      "title": "Operating Systems — Virtual Memory & Paging",
+      "description": "Paging mechanisms and address translation.",
+      "formatted_content": "# Virtual Memory & Paging\n- Page Tables\n- TLB Miss\n- LRU Page Replacement",
+      "summary": "Paging mechanisms and address translation.",
+      "keywords": [
+        "Paging",
+        "TLB",
+        "LRU",
+        "Virtual Memory"
+      ],
+      "duration": 40,
+      "audio_file_id": null,
+      "code": "CS101",
+      "college": "DKTE",
+      "branch": "Computer Science",
+      "semester": "Sem 5",
+      "note_type": "Lecture Notes",
+      "author": "Aarav Gupta (DKTE)",
+      "full_content": {
+        "overview": "Paging mechanisms and address translation.",
+        "key_topics": [
+          "Paging",
+          "TLB",
+          "LRU",
+          "Virtual Memory"
+        ],
+        "pyqs": [],
+        "formulas": []
+      },
+      "is_public": true,
+      "note_id": "note_1792220743428",
+      "created_at": "2026-10-17T07:05:43.428Z",
+      "likes_count": 0
+    },
+    {
+      "user_id": "usr_1792220898643_grayf",
+      "subject": "Operating Systems",
+      "chapter": "Virtual Memory & Paging",
+      "title": "Operating Systems — Virtual Memory & Paging",
+      "description": "Paging mechanisms and address translation.",
+      "formatted_content": "# Virtual Memory & Paging\n- Page Tables\n- TLB Miss\n- LRU Page Replacement",
+      "summary": "Updated summary for virtual memory.",
+      "keywords": [
+        "Paging",
+        "TLB",
+        "LRU",
+        "Virtual Memory"
+      ],
+      "duration": 40,
+      "audio_file_id": null,
+      "code": "CS101",
+      "college": "DKTE",
+      "branch": "Computer Science",
+      "semester": "Sem 5",
+      "note_type": "Lecture Notes",
+      "author": "Aarav Gupta (DKTE)",
+      "full_content": {
+        "overview": "Paging mechanisms and address translation.",
+        "key_topics": [
+          "Paging",
+          "TLB",
+          "LRU",
+          "Virtual Memory"
+        ],
+        "pyqs": [],
+        "formulas": []
+      },
+      "is_public": true,
+      "note_id": "note_1792220898721",
+      "created_at": "2026-10-17T07:08:18.721Z",
+      "likes_count": 1
+    },
+    {
+      "user_id": "usr_1792220935178_lkqom",
+      "subject": "Operating Systems",
+      "chapter": "Virtual Memory & Paging",
+      "title": "Operating Systems — Virtual Memory & Paging",
+      "description": "Paging mechanisms and address translation.",
+      "formatted_content": "# Virtual Memory & Paging\n- Page Tables\n- TLB Miss\n- LRU Page Replacement",
+      "summary": "Updated summary for virtual memory.",
+      "keywords": [
+        "Paging",
+        "TLB",
+        "LRU",
+        "Virtual Memory"
+      ],
+      "duration": 40,
+      "audio_file_id": null,
+      "code": "CS101",
+      "college": "DKTE",
+      "branch": "Computer Science",
+      "semester": "Sem 5",
+      "note_type": "Lecture Notes",
+      "author": "Aarav Gupta (DKTE)",
+      "full_content": {
+        "overview": "Paging mechanisms and address translation.",
+        "key_topics": [
+          "Paging",
+          "TLB",
+          "LRU",
+          "Virtual Memory"
+        ],
+        "pyqs": [],
+        "formulas": []
+      },
+      "is_public": true,
+      "note_id": "note_1792220935266",
+      "created_at": "2026-10-17T07:08:55.266Z",
+      "likes_count": 1
+    },
+    {
+      "user_id": "usr_1792221530863_4g91b",
+      "subject": "Operating Systems",
+      "chapter": "Virtual Memory & Paging",
+      "title": "Operating Systems — Virtual Memory & Paging",
+      "description": "Paging mechanisms and address translation.",
+      "formatted_content": "# Virtual Memory & Paging\n- Page Tables\n- TLB Miss\n- LRU Page Replacement",
+      "summary": "Updated summary for virtual memory.",
+      "keywords": [
+        "Paging",
+        "TLB",
+        "LRU",
+        "Virtual Memory"
+      ],
+      "duration": 40,
+      "audio_file_id": null,
+      "code": "CS101",
+      "college": "DKTE",
+      "branch": "Computer Science",
+      "semester": "Sem 5",
+      "note_type": "Lecture Notes",
+      "author": "Aarav Gupta (DKTE)",
+      "full_content": {
+        "overview": "Paging mechanisms and address translation.",
+        "key_topics": [
+          "Paging",
+          "TLB",
+          "LRU",
+          "Virtual Memory"
+        ],
+        "pyqs": [],
+        "formulas": []
+      },
+      "is_public": true,
+      "note_id": "note_1792221530972",
+      "created_at": "2026-10-17T07:18:50.972Z",
+      "likes_count": 1
+    },
+    {
+      "user_id": "usr_1792222787766_nt0lj",
+      "subject": "Operating Systems",
+      "chapter": "Virtual Memory & Paging",
+      "title": "Operating Systems — Virtual Memory & Paging",
+      "description": "Paging mechanisms and address translation.",
+      "formatted_content": "# Virtual Memory & Paging\n- Page Tables\n- TLB Miss\n- LRU Page Replacement",
+      "summary": "Updated summary for virtual memory.",
+      "keywords": [
+        "Paging",
+        "TLB",
+        "LRU",
+        "Virtual Memory"
+      ],
+      "duration": 40,
+      "audio_file_id": null,
+      "code": "CS101",
+      "college": "DKTE",
+      "branch": "Computer Science",
+      "semester": "Sem 5",
+      "note_type": "Lecture Notes",
+      "author": "Aarav Gupta (DKTE)",
+      "full_content": {
+        "overview": "Paging mechanisms and address translation.",
+        "key_topics": [
+          "Paging",
+          "TLB",
+          "LRU",
+          "Virtual Memory"
+        ],
+        "pyqs": [],
+        "formulas": []
+      },
+      "is_public": true,
+      "note_id": "note_1792222787848",
+      "created_at": "2026-10-17T07:39:47.848Z",
+      "likes_count": 1
+    }
+  ],
+  "stats": {
+    "activeNotebooks": 4,
+    "uploadedSources": 14,
+    "audioSynthesis": 3,
+    "solvedPYQs": 28
+  },
+  "pyqs": [
+    {
+      "user_id": "usr_1792220898643_grayf",
+      "subject": "Operating Systems",
+      "year": 2025,
+      "college": "",
+      "branch": "",
+      "semester": "",
+      "extracted_text": "Q1: Explain Bankers algorithm with safety criteria.\nQ2: Compare FCFS and Round Robin.",
+      "topic_frequencies": {
+        "Bankers Algorithm": 3,
+        "CPU Scheduling": 4
+      },
+      "pyq_id": "pyq_1792220898747",
+      "created_at": "2026-10-17T07:08:18.747Z"
+    },
+    {
+      "user_id": "usr_1792220935178_lkqom",
+      "subject": "Operating Systems",
+      "year": 2025,
+      "college": "",
+      "branch": "",
+      "semester": "",
+      "extracted_text": "Q1: Explain Bankers algorithm with safety criteria.\nQ2: Compare FCFS and Round Robin.",
+      "topic_frequencies": {
+        "Bankers Algorithm": 3,
+        "CPU Scheduling": 4
+      },
+      "pyq_id": "pyq_1792220935293",
+      "created_at": "2026-10-17T07:08:55.293Z"
+    },
+    {
+      "user_id": "usr_1792221530863_4g91b",
+      "subject": "Operating Systems",
+      "year": 2025,
+      "college": "",
+      "branch": "",
+      "semester": "",
+      "extracted_text": "Q1: Explain Bankers algorithm with safety criteria.\nQ2: Compare FCFS and Round Robin.",
+      "topic_frequencies": {
+        "Bankers Algorithm": 3,
+        "CPU Scheduling": 4
+      },
+      "pyq_id": "pyq_1792221530996",
+      "created_at": "2026-10-17T07:18:50.996Z"
+    },
+    {
+      "user_id": "usr_1792222787766_nt0lj",
+      "subject": "Operating Systems",
+      "year": 2025,
+      "college": "",
+      "branch": "",
+      "semester": "",
+      "extracted_text": "Q1: Explain Bankers algorithm with safety criteria.\nQ2: Compare FCFS and Round Robin.",
+      "topic_frequencies": {
+        "Bankers Algorithm": 3,
+        "CPU Scheduling": 4
+      },
+      "pyq_id": "pyq_1792222787875",
+      "created_at": "2026-10-17T07:39:47.875Z"
+    }
+  ],
+  "settings": {
+    "usr_1792220898643_grayf": {
+      "user_id": "usr_1792220898643_grayf",
+      "response_language": "Hinglish",
+      "theme": "dark",
+      "updated_at": "2026-10-17T07:08:32.261Z"
+    },
+    "usr_1792220935178_lkqom": {
+      "user_id": "usr_1792220935178_lkqom",
+      "response_language": "Hinglish",
+      "theme": "dark",
+      "updated_at": "2026-10-17T07:09:09.016Z"
+    },
+    "usr_1792221530863_4g91b": {
+      "user_id": "usr_1792221530863_4g91b",
+      "response_language": "Hinglish",
+      "theme": "dark",
+      "updated_at": "2026-10-17T07:19:05.820Z"
+    },
+    "usr_1792222787766_nt0lj": {
+      "user_id": "usr_1792222787766_nt0lj",
+      "response_language": "Hinglish",
+      "theme": "dark",
+      "updated_at": "2026-10-17T07:40:02.199Z"
+    }
+  }
+}

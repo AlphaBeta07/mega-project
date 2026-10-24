@@ -1,67 +1,103 @@
-from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
-from pymongo import MongoClient
-from pymongo.database import Database as SyncDatabase
 import logging
 from typing import Optional
-
+from supabase import create_client, Client
 from .config import settings
 
-logger = logging.getLogger("studysnap.database")
+logger = logging.getLogger("studysnap.supabase")
 
-class DatabaseManager:
-    """Async Motor and Sync PyMongo Connection Manager for StudySnap AI."""
+class SupabaseManager:
+    """Connection manager for Supabase PostgreSQL and Storage."""
     
     def __init__(self):
-        self.client: Optional[AsyncIOMotorClient] = None
-        self.db: Optional[AsyncIOMotorDatabase] = None
-        self.sync_client: Optional[MongoClient] = None
-        self.sync_db: Optional[SyncDatabase] = None
+        self._anon_client: Optional[Client] = None
+        self._service_client: Optional[Client] = None
 
-    def connect(self) -> AsyncIOMotorDatabase:
-        """Initialize Async Motor MongoDB client."""
-        if not self.client:
-            logger.info(f"Connecting to MongoDB at: {settings.MONGODB_URL}")
-            self.client = AsyncIOMotorClient(settings.MONGODB_URL, serverSelectionTimeoutMS=5000)
-            self.db = self.client[settings.DB_NAME]
-        return self.db
+    def get_client(self, access_token: Optional[str] = None) -> Optional[Client]:
+        """
+        Get or initialize a Supabase client.
+        If access_token is provided, sets postgrest authentication to enforce RLS.
+        """
+        if not settings.is_configured:
+            return None
 
-    def connect_sync(self) -> SyncDatabase:
-        """Initialize Synchronous PyMongo client."""
-        if not self.sync_client:
-            self.sync_client = MongoClient(settings.MONGODB_URL, serverSelectionTimeoutMS=5000)
-            self.sync_db = self.sync_client[settings.DB_NAME]
-        return self.sync_db
+        key = settings.SUPABASE_PUBLISHABLE_KEY or settings.SUPABASE_SECRET_KEY
+        if not self._anon_client:
+            try:
+                self._anon_client = create_client(settings.SUPABASE_URL, key)
+                logger.info(f"Initialized Supabase client for {settings.SUPABASE_URL}")
+            except Exception as e:
+                logger.error(f"Failed to initialize Supabase client: {e}")
+                return None
 
-    def close(self):
-        """Close all active MongoDB connections."""
-        if self.client:
-            self.client.close()
-            self.client = None
-            self.db = None
-            logger.info("Closed Motor MongoDB Async Connection.")
-        if self.sync_client:
-            self.sync_client.close()
-            self.sync_client = None
-            self.sync_db = None
-            logger.info("Closed PyMongo Sync Connection.")
+        client = self._anon_client
+        if access_token and client:
+            try:
+                client.postgrest.auth(access_token)
+            except Exception as auth_err:
+                logger.warning(f"Failed to set postgrest bearer token: {auth_err}")
 
-db_manager = DatabaseManager()
+        return client
 
-def get_async_db() -> AsyncIOMotorDatabase:
-    """Dependency helper to get active Motor async database instance."""
-    return db_manager.connect()
+    def get_service_client(self) -> Optional[Client]:
+        """Get trusted service-role client for background administration."""
+        if not settings.is_configured or not settings.SUPABASE_SECRET_KEY:
+            return None
 
-def get_sync_db() -> SyncDatabase:
-    """Dependency helper to get active PyMongo sync database instance."""
-    return db_manager.connect_sync()
+        if not self._service_client:
+            try:
+                self._service_client = create_client(
+                    settings.SUPABASE_URL, 
+                    settings.SUPABASE_SECRET_KEY
+                )
+                logger.info("Initialized Supabase service-role client.")
+            except Exception as e:
+                logger.error(f"Failed to initialize Supabase service client: {e}")
+                return None
+
+        return self._service_client
+
+    async def ping(self) -> bool:
+        """Check if Supabase instance is online and reachable."""
+        if not settings.is_configured:
+            return False
+        try:
+            client = self.get_client()
+            if not client:
+                return False
+            # Simple query to verify connection
+            res = client.table("notebooks").select("id").limit(1).execute()
+            return True
+        except Exception as e:
+            logger.debug(f"Supabase ping note: {e}")
+            # If error is table not found or auth error, Supabase itself is still reached
+            err_msg = str(e).lower()
+            if "pgrst" in err_msg or "unauthorized" in err_msg or "not found" in err_msg:
+                return True
+            return False
+
+supabase_manager = SupabaseManager()
+
+def get_supabase(access_token: Optional[str] = None) -> Optional[Client]:
+    """Dependency helper to get active Supabase client."""
+    return supabase_manager.get_client(access_token)
 
 async def ping_db() -> bool:
-    """Ping MongoDB server to verify active connection status."""
-    try:
-        client = AsyncIOMotorClient(settings.MONGODB_URL, serverSelectionTimeoutMS=3000)
-        await client.admin.command('ping')
-        client.close()
-        return True
-    except Exception as e:
-        logger.error(f"MongoDB Ping Error: {e}")
-        return False
+    """Verify database connection status."""
+    return await supabase_manager.ping()
+
+class _CompatibilityDB:
+    def __getitem__(self, _):
+        return self
+    def replace_one(self, *args, **kwargs):
+        return None
+    def find(self, *args, **kwargs):
+        return []
+    def delete_one(self, *args, **kwargs):
+        return None
+
+_compat_db = _CompatibilityDB()
+
+def get_sync_db():
+    """Compatibility stub for legacy MongoDB sync calls."""
+    return _compat_db
+

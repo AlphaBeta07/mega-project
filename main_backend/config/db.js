@@ -8,10 +8,13 @@ const connectDB = async () => {
   try {
     const connUri = process.env.MONGO_URI || 'mongodb://localhost:27017/studysnap_db';
     
+    // Disable operation buffering so offline DB immediately falls back without 10s freeze
+    mongoose.set('bufferCommands', false);
+
     // Configure mongoose connection options
     const options = {
-      autoIndex: true,
-      serverSelectionTimeoutMS: 5000,
+      autoIndex: false,
+      serverSelectionTimeoutMS: 2000,
     };
 
     const conn = await mongoose.connect(connUri, options);

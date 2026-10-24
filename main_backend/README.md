@@ -190,7 +190,7 @@ npm test
   "name": "Rohan Sharma",
   "email": "rohan.sharma@iitb.ac.in",
   "password": "password123",
-  "college": "IIT Bombay",
+  "college": "DKTE",
   "branch": "Computer Science",
   "semester": "Sem 5"
 }
@@ -207,7 +207,7 @@ npm test
       "name": "Rohan Sharma",
       "email": "rohan.sharma@iitb.ac.in",
       "role": "student",
-      "college": "IIT Bombay",
+      "college": "DKTE",
       "branch": "Computer Science",
       "semester": "Sem 5"
     },

@@ -1,13 +1,14 @@
 import React from 'react';
-import { Home, MessageSquare, LogIn, Sparkles, User } from 'lucide-react';
+import { Home, MessageSquare, LogIn, User } from 'lucide-react';
 import './BottomNav.css';
 
 interface BottomNavProps {
-  activeTab: 'home' | 'studio' | 'chat' | 'infographic' | 'quiz' | 'audio' | 'mindmap' | 'reports' | 'flashcards';
+  activeTab: 'home' | 'chat' | 'infographic' | 'quiz' | 'audio' | 'mindmap' | 'reports' | 'flashcards' | '';
   isLoggedIn: boolean;
-  onTabChange: (tab: 'home' | 'studio' | 'chat' | 'infographic' | 'quiz' | 'audio' | 'mindmap' | 'reports' | 'flashcards') => void;
+  onTabChange: (tab: any) => void;
   onOpenAuth: () => void;
   onOpenAccount?: () => void;
+  currentUser?: any;
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({
@@ -15,8 +16,12 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   isLoggedIn,
   onTabChange,
   onOpenAuth,
-  onOpenAccount
+  onOpenAccount,
+  currentUser
 }) => {
+  const avatarUrl = currentUser?.avatar_url;
+  const initial = (currentUser?.full_name?.charAt(0) || currentUser?.name?.charAt(0) || 'S').toUpperCase();
+
   return (
     <nav className="bottom-nav" aria-label="Main navigation">
       <div className="bottom-nav__inner">
@@ -30,21 +35,6 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           </span>
           <span className="bottom-nav__label">Home</span>
         </button>
-
-        {/* Studio Tab (If Logged In) */}
-        {isLoggedIn && (
-          <button
-            className={`bottom-nav__item ${activeTab === 'studio' ? 'active' : ''}`}
-            onClick={() => onTabChange('studio')}
-          >
-            <span className="bottom-nav__icon-wrap">
-              <Sparkles size={18} strokeWidth={2} />
-            </span>
-            <span className="bottom-nav__label">Studio</span>
-          </button>
-        )}
-
-
 
         {/* Chat Tab */}
         <button
@@ -84,9 +74,40 @@ export const BottomNav: React.FC<BottomNavProps> = ({
             title="Account & Profile Options"
           >
             <span className="bottom-nav__icon-wrap">
-              <User size={18} strokeWidth={2} />
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={currentUser?.full_name || 'Account'}
+                  style={{
+                    width: '22px',
+                    height: '22px',
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                    border: '1.5px solid #F59E0B'
+                  }}
+                />
+              ) : currentUser ? (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '22px',
+                    height: '22px',
+                    borderRadius: '50%',
+                    backgroundColor: '#D97706',
+                    color: '#FFFFFF',
+                    fontSize: '11px',
+                    fontWeight: 700
+                  }}
+                >
+                  {initial}
+                </span>
+              ) : (
+                <User size={18} strokeWidth={2} />
+              )}
             </span>
-            <span className="bottom-nav__label">Account</span>
+            {/* <span className="bottom-nav__label">Account</span> */}
           </button>
         )}
       </div>

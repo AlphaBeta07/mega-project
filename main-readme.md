@@ -13,6 +13,7 @@ This document covers all the configuration, hardware strategies, and hyperparame
   - Merged Safetensors: `my_7b_model/`
   - GGUF File (Q4_K_M): `my_7b_model_gguf/`
 - **Dataset:** `yahma/alpaca-cleaned`
+- **Model Weights Download (Google Drive):** [Download Model Files](https://drive.google.com/drive/folders/1t8rqnwpjoVUJValpjHrmMkZs_c5lO6IT?usp=sharing)
 
 ---
 

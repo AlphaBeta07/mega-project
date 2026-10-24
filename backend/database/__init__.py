@@ -1,17 +1,17 @@
 """
 StudySnap AI Database Module
 ============================
-MongoDB Database Package supporting SRS specifications for:
-- Users & Authentication
+Supabase PostgreSQL & Storage Package supporting:
+- Profiles & Authentication (Supabase Auth)
+- Notebooks (User Study Workspaces)
 - Lecture Notes & Audio Recordings
-- PYQ Papers & Topic Frequency Mapping
-- Transcriptions & RAG Source Documents
-- Chatbot Sessions & Message History
-- AI Study Artifacts (Podcasts, Infographics, Mind Maps)
+- Documents & RAG Source Embeddings
+- Chat Sessions & Message History
+- AI Generated Materials (Podcasts, Infographics, Mind Maps, Quizzes, Flashcards)
 """
 
 from .config import settings
-from .connection import db_manager, get_async_db, get_sync_db, ping_db
+from .connection import supabase_manager, get_supabase, ping_db
 from .models import (
     UserInDB, UserCreate, UserResponse,
     NoteInDB, NoteCreate, NoteUpdate,
@@ -19,15 +19,23 @@ from .models import (
     PYQDocumentInDB, PYQDocumentCreate,
     TopicMappingInDB, TranscriptionInDB,
     ChatSessionInDB, ChatSessionCreate, ChatMessage,
-    SourceDocumentInDB, AIArtifactInDB, UserSettingsInDB
+    SourceDocumentInDB, AIArtifactInDB, UserSettingsInDB,
+    NotebookInDB, NotebookCreate, NotebookUpdate, NotebookResponse
 )
 from .crud import (
-    UserCRUD, NoteCRUD, AudioCRUD, PYQCRUD,
-    TopicMappingCRUD, ChatbotCRUD, SourceCRUD, ArtifactCRUD
+    UserCRUD, NoteCRUD, ChatbotCRUD, SourceCRUD, ArtifactCRUD,
+    NotebookCRUD
 )
+
+# Provide backward-compatibility aliases if needed
+db_manager = supabase_manager
+get_async_db = lambda: supabase_manager.get_client()
+get_sync_db = lambda: supabase_manager.get_client()
 
 __all__ = [
     "settings",
+    "supabase_manager",
+    "get_supabase",
     "db_manager",
     "get_async_db",
     "get_sync_db",
@@ -39,6 +47,7 @@ __all__ = [
     "TopicMappingInDB", "TranscriptionInDB",
     "ChatSessionInDB", "ChatSessionCreate", "ChatMessage",
     "SourceDocumentInDB", "AIArtifactInDB", "UserSettingsInDB",
-    "UserCRUD", "NoteCRUD", "AudioCRUD", "PYQCRUD",
-    "TopicMappingCRUD", "ChatbotCRUD", "SourceCRUD", "ArtifactCRUD"
+    "NotebookInDB", "NotebookCreate", "NotebookUpdate", "NotebookResponse",
+    "UserCRUD", "NoteCRUD", "ChatbotCRUD", "SourceCRUD", "ArtifactCRUD",
+    "NotebookCRUD"
 ]

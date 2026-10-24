@@ -23,6 +23,9 @@ backend/chroma_data/
 *.sqlite3
 .env
 backend/.env
+frontend/.env
+main_backend/.env
+*.env.local
 
 # Large files & Env
 venv_old/

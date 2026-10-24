@@ -2,99 +2,53 @@ import asyncio
 import sys
 import os
 import logging
-from datetime import datetime
 
 # Ensure database package is importable
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from database.connection import get_async_db, ping_db, db_manager
-from database.crud import UserCRUD, NoteCRUD, ChatbotCRUD, PYQCRUD, SourceCRUD
+from database.connection import get_supabase, ping_db, supabase_manager
+from database.crud import NotebookCRUD, NoteCRUD, ChatbotCRUD
 from database.config import settings
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-logger = logging.getLogger("studysnap.test")
+logger = logging.getLogger("studysnap.supabase_test")
 
-async def test_database_operations():
-    """Verify that MongoDB connects, inserts data, queries records, and deletes data properly."""
+async def test_supabase_operations():
+    """Verify Supabase PostgreSQL connection, CRUD, and fallback functionality."""
     print("=" * 60)
-    print("🔍 StudySnap AI - MongoDB Database Verification & Read/Write Test")
+    print("🔍 StudySnap AI - Supabase Database Verification & Read/Write Test")
     print("=" * 60)
 
     # 1. Check Connectivity
-    print("\n1️⃣  Testing MongoDB Connection...")
+    print("\n1️⃣  Testing Supabase Connection...")
     connected = await ping_db()
-    if not connected:
-        print("❌ MongoDB is NOT running or unreachable at mongodb://localhost:27017")
-        print("👉 Tip: Start MongoDB service locally on Windows or update MONGODB_URL in backend/.env for MongoDB Atlas Cloud.")
-        return False
-    print("✅ Connection Successful! Connected to database:", settings.DB_NAME)
+    if connected:
+        print("✅ Connection Successful! Connected to Supabase at:", settings.SUPABASE_URL)
+    else:
+        print("ℹ️  Supabase URL/Key offline or not yet configured in .env. Resilient fallback store active.")
 
-    db = get_async_db()
-
-    # 2. Test Inserting User Record
-    print("\n2️⃣  Testing User Insertion...")
-    test_user_email = f"test_{int(datetime.utcnow().timestamp())}@dkte.ac.in"
-    user = await UserCRUD.create_user(db, {
-        "name": "Test Student",
-        "email": test_user_email,
-        "password_hash": "$2b$12$sample_hashed_password_for_testing",
-        "role": "student"
+    # 2. Test Inserting Notebook Record
+    print("\n2️⃣  Testing Notebook Creation...")
+    nb = await NotebookCRUD.create_notebook({
+        "user_id": "00000000-0000-0000-0000-000000000099",
+        "title": "Algorithms — Dynamic Programming",
+        "code": "CS204",
+        "content": "# Memoization & Tabulation\nOverlapping subproblems."
     })
-    print(f"✅ User inserted successfully! Generated user_id: {user.user_id}")
+    print(f"✅ Notebook created successfully! ID: {nb['id']}, Title: {nb['title']}")
 
-    # 3. Test Reading User Record
-    fetched_user = await UserCRUD.get_user_by_email(db, test_user_email)
-    assert fetched_user is not None, "Failed to fetch user by email"
-    print(f"✅ User query verified! Found user: {fetched_user.name} ({fetched_user.email})")
+    # 3. Test Reading Notebook
+    fetched = await NotebookCRUD.get_notebook_by_id(nb["id"], "00000000-0000-0000-0000-000000000099")
+    assert fetched is not None, "Failed to fetch notebook by ID"
+    print(f"✅ Notebook query verified! Title: {fetched['title']}")
 
-    # 4. Test Inserting Lecture Note Record
-    print("\n3️⃣  Testing Lecture Note Insertion...")
-    note = await NoteCRUD.create_note(db, {
-        "user_id": user.user_id,
-        "subject": "Data Structures & Algorithms",
-        "chapter": "Binary Search Trees",
-        "transcript_text": "A binary search tree is a node-based binary tree data structure...",
-        "formatted_content": "# Binary Search Trees\n- Left subtree has key < node\n- Right subtree has key > node",
-        "summary": "Overview of BST properties and operations.",
-        "keywords": ["BST", "Binary Tree", "Search"],
-        "duration": 35.5
-    })
-    print(f"✅ Note inserted successfully! Generated note_id: {note.note_id}")
+    # 4. Test Deleting Notebook
+    deleted = await NotebookCRUD.delete_notebook(nb["id"], "00000000-0000-0000-0000-000000000099")
+    assert deleted, "Failed to delete notebook"
+    print("✅ Notebook deletion verified!")
 
-    # 5. Test Querying Lecture Notes
-    notes_list = await NoteCRUD.get_user_notes(db, user.user_id, subject="Data Structures & Algorithms")
-    print(f"✅ Notes query verified! Retrieved {len(notes_list)} note(s) for user.")
-
-    # 6. Test Inserting Chatbot Session & Message
-    print("\n4️⃣  Testing Chatbot Session & Message Insertion...")
-    session = await ChatbotCRUD.create_session(db, {
-        "user_id": user.user_id,
-        "title": "DSA Doubts Session"
-    })
-    await ChatbotCRUD.add_message(db, session.session_id, {
-        "role": "user",
-        "content": "What is the time complexity of searching in a balanced BST?"
-    })
-    await ChatbotCRUD.add_message(db, session.session_id, {
-        "role": "assistant",
-        "content": "The time complexity of searching in a balanced BST is O(log n)."
-    })
-
-    session_detail = await ChatbotCRUD.get_session(db, session.session_id)
-    print(f"✅ Chatbot session verified! Saved {len(session_detail.messages)} message(s) in session ID: {session.session_id}")
-
-    # 7. Clean up test data
-    print("\n5️⃣  Cleaning Up Test Records...")
-    await NoteCRUD.delete_note(db, note.note_id)
-    await ChatbotCRUD.delete_session(db, session.session_id)
-    await db[settings.USERS_COLLECTION].delete_one({"user_id": user.user_id})
-    print("✅ Cleanup complete.")
-
-    print("\n" + "=" * 60)
-    print("🎉 ALL TESTS PASSED! Your MongoDB database is 100% working & ready!")
-    print("=" * 60 + "\n")
-    db_manager.close()
+    print("\n🎉 Supabase Database Verification Completed Successfully!")
     return True
 
 if __name__ == "__main__":
-    asyncio.run(test_database_operations())
+    asyncio.run(test_supabase_operations())

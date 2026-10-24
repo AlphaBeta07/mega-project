@@ -1,4 +1,5 @@
 const Note = require('../models/Note');
+const storageService = require('../services/storageService');
 const { successResponse, errorResponse } = require('../utils/apiResponse');
 
 // Default initial starter notes matching frontend requirements
@@ -10,12 +11,12 @@ const DEFAULT_INITIAL_NOTES = [
     subject: 'Operating Systems',
     chapter: 'Module 1: Process Scheduling & Deadlocks',
     title: 'Operating Systems — Process Scheduling & Deadlocks',
-    college: 'IIT Bombay',
+    college: 'DKTE',
     branch: 'Computer Science',
     semester: 'Sem 5',
     note_type: 'Lecture Notes',
     description: "Complete breakdown of CPU scheduling algorithms (FCFS, SJF, Round Robin), Banker's algorithm for deadlock avoidance with resource allocation graph examples.",
-    author: 'Rohan Sharma (IIT Bombay)',
+    author: 'Rohan Sharma (DKTE)',
     likes_count: 142,
     read_time: '8 min read',
     formatted_content: '# Operating Systems — Process Scheduling & Deadlocks\n\n## Overview\nThis comprehensive guide covers kernel process management, CPU scheduler implementations in Linux, deadlock conditions (Coffman conditions), and Banker algorithm matrices.\n\n## Key Concepts\n- FCFS, SJF, SRTF, and Round Robin Gantt Chart examples\n- Multi-level Queue Scheduling & Feedback Queues\n- 4 Necessary Conditions for Deadlock: Mutual Exclusion, Hold & Wait, No Preemption, Circular Wait\n- Resource Allocation Graph (RAG) reduction and Banker\'s Safety Algorithm\n\n## Essential Formulas\n- Turnaround Time (TAT) = Completion Time - Arrival Time\n- Waiting Time (WT) = Turnaround Time - Burst Time\n- Need[i][j] = Max[i][j] - Allocation[i][j]',
@@ -174,61 +175,7 @@ const DEFAULT_INITIAL_NOTES = [
  */
 const getPublicNotes = async (req, res, next) => {
   try {
-    const {
-      college,
-      branch,
-      semester,
-      subject,
-      note_type,
-      search,
-      sort_by = 'Most Recent',
-    } = req.query;
-
-    // Check if collection has documents; seed defaults if empty
-    const count = await Note.countDocuments();
-    if (count === 0) {
-      await Note.insertMany(DEFAULT_INITIAL_NOTES);
-    }
-
-    const query = { is_public: true };
-
-    if (college && college !== 'All Colleges') {
-      query.college = college;
-    }
-    if (branch && branch !== 'All Branches') {
-      query.branch = branch;
-    }
-    if (semester && semester !== 'All Semesters') {
-      query.semester = semester;
-    }
-    if (subject && subject !== 'All Subjects') {
-      query.subject = subject;
-    }
-    if (note_type && note_type !== 'All Types') {
-      query.note_type = note_type;
-    }
-
-    if (search && search.trim() !== '') {
-      const searchRegex = new RegExp(search.trim(), 'i');
-      query.$or = [
-        { title: searchRegex },
-        { subject: searchRegex },
-        { chapter: searchRegex },
-        { description: searchRegex },
-        { author: searchRegex },
-        { code: searchRegex },
-      ];
-    }
-
-    let sortOptions = { created_at: -1 };
-    if (sort_by === 'Most Liked') {
-      sortOptions = { likes_count: -1, created_at: -1 };
-    } else if (sort_by === 'Title A-Z') {
-      sortOptions = { title: 1 };
-    }
-
-    const notes = await Note.find(query).sort(sortOptions);
-
+    const notes = await storageService.getPublicNotes(req.query);
     return successResponse(res, 200, 'Public study notes fetched successfully', {
       count: notes.length,
       notes,
@@ -248,12 +195,8 @@ const getUserNotes = async (req, res, next) => {
     const userId = req.user.user_id;
     const { subject } = req.query;
 
-    const query = { user_id: userId };
-    if (subject) {
-      query.subject = subject;
-    }
-
-    const notes = await Note.find(query).sort({ created_at: -1 });
+    const allNotes = await storageService.getPublicNotes({ subject });
+    const notes = allNotes.filter((n) => n.user_id === userId || n.user_id === 'default_user');
 
     return successResponse(res, 200, 'User notes fetched successfully', {
       count: notes.length,
@@ -272,9 +215,7 @@ const getUserNotes = async (req, res, next) => {
 const getNoteById = async (req, res, next) => {
   try {
     const noteId = req.params.id;
-    const note = await Note.findOne({
-      $or: [{ note_id: noteId }, { _id: noteId.match(/^[0-9a-fA-F]{24}$/) ? noteId : null }],
-    });
+    const note = await storageService.getNoteById(noteId);
 
     if (!note) {
       return errorResponse(res, 404, 'Lecture note not found');
@@ -317,7 +258,7 @@ const createNote = async (req, res, next) => {
       return errorResponse(res, 400, 'Please provide subject, chapter, and formatted_content');
     }
 
-    const note = await Note.create({
+    const note = await storageService.createNote({
       user_id: userId,
       subject,
       chapter,
@@ -329,7 +270,7 @@ const createNote = async (req, res, next) => {
       duration: duration || 0.0,
       audio_file_id: audio_file_id || null,
       code: code || 'CS101',
-      college: college || (req.user ? req.user.college : 'IIT Bombay'),
+      college: college || (req.user ? req.user.college : 'DKTE'),
       branch: branch || (req.user ? req.user.branch : 'Computer Science'),
       semester: semester || (req.user ? req.user.semester : 'Sem 5'),
       note_type: note_type || 'Lecture Notes',
@@ -357,13 +298,7 @@ const createNote = async (req, res, next) => {
 const updateNote = async (req, res, next) => {
   try {
     const noteId = req.params.id;
-    const updateData = { ...req.body, updated_at: new Date() };
-
-    const note = await Note.findOneAndUpdate(
-      { note_id: noteId },
-      { $set: updateData },
-      { new: true, runValidators: true }
-    );
+    const note = await storageService.updateNote(noteId, req.body);
 
     if (!note) {
       return errorResponse(res, 404, 'Note not found');
@@ -383,9 +318,9 @@ const updateNote = async (req, res, next) => {
 const deleteNote = async (req, res, next) => {
   try {
     const noteId = req.params.id;
-    const note = await Note.findOneAndDelete({ note_id: noteId });
+    const deleted = await storageService.deleteNote(noteId);
 
-    if (!note) {
+    if (!deleted) {
       return errorResponse(res, 404, 'Note not found');
     }
 
@@ -403,29 +338,14 @@ const deleteNote = async (req, res, next) => {
 const toggleLikeNote = async (req, res, next) => {
   try {
     const noteId = req.params.id;
-    const userId = req.user ? req.user.user_id : 'anonymous_user';
-
-    const note = await Note.findOne({ note_id: noteId });
+    const note = await storageService.likeNote(noteId);
     if (!note) {
       return errorResponse(res, 404, 'Note not found');
     }
 
-    const hasLiked = note.liked_by && note.liked_by.includes(userId);
-
-    if (hasLiked) {
-      note.liked_by = note.liked_by.filter((id) => id !== userId);
-      note.likes_count = Math.max(0, (note.likes_count || 1) - 1);
-    } else {
-      if (!note.liked_by) note.liked_by = [];
-      note.liked_by.push(userId);
-      note.likes_count = (note.likes_count || 0) + 1;
-    }
-
-    await note.save();
-
-    return successResponse(res, 200, hasLiked ? 'Note unliked' : 'Note liked', {
+    return successResponse(res, 200, 'Note liked successfully', {
       likes_count: note.likes_count,
-      is_liked: !hasLiked,
+      is_liked: true,
     });
   } catch (error) {
     next(error);

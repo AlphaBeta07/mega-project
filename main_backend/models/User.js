@@ -35,7 +35,7 @@ const userSchema = new mongoose.Schema(
     },
     college: {
       type: String,
-      default: 'IIT Bombay',
+      default: 'DKTE',
     },
     branch: {
       type: String,

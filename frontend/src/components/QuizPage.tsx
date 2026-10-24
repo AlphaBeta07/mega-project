@@ -106,9 +106,9 @@ export const QuizPage: React.FC<QuizPageProps> = ({ backendUrl, selectedSourceId
       <button
         onClick={onBack}
         style={{
-          background: 'rgba(255, 255, 255, 0.08)',
-          border: '1px solid rgba(255, 255, 255, 0.12)',
-          color: '#F3F4F6',
+          background: 'var(--surface-secondary, rgba(255, 255, 255, 0.08))',
+          border: '1px solid var(--border-default)',
+          color: 'var(--text-primary)',
           padding: '6px 16px',
           borderRadius: '9999px',
           fontSize: '0.85rem',
@@ -117,7 +117,8 @@ export const QuizPage: React.FC<QuizPageProps> = ({ backendUrl, selectedSourceId
           display: 'inline-flex',
           alignItems: 'center',
           gap: '8px',
-          marginBottom: '24px'
+          marginBottom: '24px',
+          transition: 'all 0.2s'
         }}
       >
         <ArrowLeft size={16} />
@@ -241,7 +242,7 @@ export const QuizPage: React.FC<QuizPageProps> = ({ backendUrl, selectedSourceId
             onClick={generateQuiz}
             style={{ padding: '12px 24px', borderRadius: '8px', backgroundColor: 'transparent', color: 'var(--text-primary)', fontSize: '15px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px', border: '1px solid var(--border-color)' }}
           >
-            <RefreshCw size={16} /> Retake Quiz
+            <RefreshCw size={16} /> New Quiz
           </button>
         </div>
       )}

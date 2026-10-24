@@ -111,9 +111,9 @@ export const FlashcardsPage: React.FC<FlashcardsPageProps> = ({ backendUrl, sele
       <button
         onClick={onBack}
         style={{
-          background: 'rgba(255, 255, 255, 0.08)',
-          border: '1px solid rgba(255, 255, 255, 0.12)',
-          color: '#F3F4F6',
+          background: 'var(--surface-secondary, rgba(255, 255, 255, 0.08))',
+          border: '1px solid var(--border-default)',
+          color: 'var(--text-primary)',
           padding: '6px 16px',
           borderRadius: '9999px',
           fontSize: '0.85rem',
@@ -122,7 +122,8 @@ export const FlashcardsPage: React.FC<FlashcardsPageProps> = ({ backendUrl, sele
           display: 'inline-flex',
           alignItems: 'center',
           gap: '8px',
-          marginBottom: '24px'
+          marginBottom: '24px',
+          transition: 'all 0.2s'
         }}
       >
         <ArrowLeft size={16} />
@@ -132,13 +133,13 @@ export const FlashcardsPage: React.FC<FlashcardsPageProps> = ({ backendUrl, sele
       {!data && !loading && (
         <div style={{ textAlign: 'center', marginTop: '60px' }}>
           <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(229, 176, 163, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
-             <BrainCircuit size={40} style={{ color: '#e5b0a3' }} />
+             <BrainCircuit size={40} style={{ color: 'var(--card-flashcards-accent, #e5b0a3)' }} />
           </div>
-          <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '12px' }}>Generate Flashcards</h2>
+          <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '12px', color: 'var(--text-primary)' }}>Generate Flashcards</h2>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '32px' }}>Extract key terms and definitions for quick memorization.</p>
           <button 
             onClick={generateFlashcards}
-            style={{ padding: '12px 24px', borderRadius: '8px', border: 'none', backgroundColor: 'var(--accent-color)', color: '#000', fontSize: '15px', fontWeight: 600, cursor: 'pointer' }}
+            style={{ padding: '12px 24px', borderRadius: '8px', border: 'none', backgroundColor: 'var(--button-primary-bg, var(--accent-color))', color: 'var(--button-primary-text, #000)', fontSize: '15px', fontWeight: 600, cursor: 'pointer' }}
           >
             Start Generating
           </button>
@@ -214,9 +215,9 @@ export const FlashcardsPage: React.FC<FlashcardsPageProps> = ({ backendUrl, sele
                 width: '100%',
                 height: '100%',
                 backfaceVisibility: 'hidden',
-                backgroundColor: '#2a2a2a',
+                backgroundColor: 'var(--surface-elevated, var(--bg-button))',
                 borderRadius: '16px',
-                border: '1px solid var(--accent-color)',
+                border: '1px solid var(--accent-primary, var(--accent-color))',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -225,7 +226,7 @@ export const FlashcardsPage: React.FC<FlashcardsPageProps> = ({ backendUrl, sele
                 textAlign: 'center',
                 transform: 'rotateX(180deg)'
               }}>
-                <span style={{ position: 'absolute', top: '16px', left: '16px', fontSize: '12px', color: 'var(--accent-color)', textTransform: 'uppercase', letterSpacing: '1px' }}>Back</span>
+                <span style={{ position: 'absolute', top: '16px', left: '16px', fontSize: '12px', color: 'var(--accent-primary, var(--accent-color))', textTransform: 'uppercase', letterSpacing: '1px' }}>Back</span>
                 <div style={{ fontSize: '20px', lineHeight: '1.6', color: 'var(--text-primary)' }}>
                   <ReactMarkdown>{data.flashcards[currentIndex].back}</ReactMarkdown>
                 </div>

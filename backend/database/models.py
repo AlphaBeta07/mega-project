@@ -179,3 +179,45 @@ class UserSettingsInDB(BaseModel):
     research_mode: str = Field(default="Fast Research")
     theme: str = Field(default="dark")
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+# ==========================================
+# 11. NOTEBOOK MODEL (SRS Entity: Notebooks)
+# ==========================================
+class NotebookBase(BaseModel):
+    title: str = Field(default="Untitled Notebook", description="Notebook display title")
+    code: str = Field(default="CS101", description="Subject or notebook code tag")
+    content: str = Field(default="", description="Notebook study content and notes (Markdown)")
+    sources_count: int = Field(default=0, description="Number of ingested sources")
+    notes_count: int = Field(default=0, description="Number of AI-generated notes")
+    sources: List[Dict[str, Any]] = Field(default_factory=list, description="Attached source documents metadata")
+    chat_history: List[Dict[str, Any]] = Field(default_factory=list, description="Associated doubt-clearing chat messages")
+    status: str = Field(default="ready", description="Status: ready, processing, error")
+
+class NotebookCreate(BaseModel):
+    title: Optional[str] = "Untitled Notebook"
+    code: Optional[str] = "CS101"
+    content: Optional[str] = ""
+    sources: Optional[List[Dict[str, Any]]] = Field(default_factory=list)
+
+class NotebookUpdate(BaseModel):
+    title: Optional[str] = None
+    code: Optional[str] = None
+    content: Optional[str] = None
+    sources_count: Optional[int] = None
+    notes_count: Optional[int] = None
+    sources: Optional[List[Dict[str, Any]]] = None
+    chat_history: Optional[List[Dict[str, Any]]] = None
+    status: Optional[str] = None
+
+class NotebookInDB(NotebookBase):
+    id: str = Field(default_factory=generate_uuid, description="Unique Notebook UUID")
+    user_id: str = Field(..., description="Supabase Authenticated User ID (UUID)")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class NotebookResponse(NotebookBase):
+    id: str
+    user_id: str
+    created_at: datetime
+    updated_at: datetime
+

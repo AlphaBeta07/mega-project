@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
-import { Search, BookOpen, Plus, User, ArrowRight } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Search, BookOpen, Plus, User, ArrowRight, Loader2, RefreshCw } from 'lucide-react';
 import { MOCK_PUBLIC_NOTES } from '../data/mockNotes';
 import type { PublicNote } from '../data/mockNotes';
+import { API_GATEWAY_URL } from '../config/api';
 import './LandingPage.css';
 
 interface LandingPageProps {
@@ -13,6 +14,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onCreateNotebook,
   onSelectNote,
 }) => {
+  // Live Data State
+  const [notes, setNotes] = useState<PublicNote[]>(MOCK_PUBLIC_NOTES);
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
   // Filter States
   const [selectedCollege, setSelectedCollege] = useState('All Colleges');
   const [selectedBranch, setSelectedBranch] = useState('All Branches');
@@ -22,16 +28,59 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const [selectedSortBy, setSelectedSortBy] = useState('Most Recent');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Extract unique filter dropdown options dynamically from mock notes
-  const colleges = useMemo(() => ['All Colleges', ...Array.from(new Set(MOCK_PUBLIC_NOTES.map(n => n.college)))], []);
-  const branches = useMemo(() => ['All Branches', ...Array.from(new Set(MOCK_PUBLIC_NOTES.map(n => n.branch)))], []);
-  const semesters = useMemo(() => ['All Semesters', ...Array.from(new Set(MOCK_PUBLIC_NOTES.map(n => n.semester)))], []);
-  const subjects = useMemo(() => ['All Subjects', ...Array.from(new Set(MOCK_PUBLIC_NOTES.map(n => n.subject)))], []);
+  // Fetch Public Notes from Backend
+  const fetchPublicNotes = async () => {
+    setLoading(true);
+    setErrorMsg(null);
+    try {
+      const res = await fetch(`${API_GATEWAY_URL}/api/notes/public`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data?.notes) && data.data.notes.length > 0) {
+        const mappedNotes: PublicNote[] = data.data.notes.map((n: any) => ({
+          id: n.note_id || n.id || n._id,
+          code: n.code || 'GEN101',
+          title: n.title || `${n.subject} — ${n.chapter}`,
+          date: n.created_at ? new Date(n.created_at).toISOString().split('T')[0] : (n.date || '2026-03-10'),
+          college: n.college || 'DKTE',
+          branch: n.branch || 'Computer Science',
+          semester: n.semester || 'Sem 5',
+          subject: n.subject || 'General Study',
+          noteType: (n.note_type || n.noteType || 'Lecture Notes') as PublicNote['noteType'],
+          description: n.description || n.summary || '',
+          author: n.author || 'StudySnap Student',
+          likesCount: n.likes_count ?? n.likesCount ?? 0,
+          readTime: n.read_time || n.readTime || '8 min read',
+          fullContent: {
+            overview: n.full_content?.overview || n.fullContent?.overview || n.summary || '',
+            keyTopics: n.full_content?.key_topics || n.fullContent?.keyTopics || n.keywords || [],
+            pyqs: n.full_content?.pyqs || n.fullContent?.pyqs || [],
+            formulas: n.full_content?.formulas || n.fullContent?.formulas || [],
+          }
+        }));
+        setNotes(mappedNotes);
+      }
+    } catch (err: any) {
+      console.warn('[LandingPage] Backend notes fetch warning, using seed data:', err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPublicNotes();
+  }, []);
+
+  // Extract unique filter dropdown options dynamically from current notes
+  const colleges = useMemo(() => ['All Colleges', ...Array.from(new Set(notes.map(n => n.college)))], [notes]);
+  const branches = useMemo(() => ['All Branches', ...Array.from(new Set(notes.map(n => n.branch)))], [notes]);
+  const semesters = useMemo(() => ['All Semesters', ...Array.from(new Set(notes.map(n => n.semester)))], [notes]);
+  const subjects = useMemo(() => ['All Subjects', ...Array.from(new Set(notes.map(n => n.subject)))], [notes]);
   const noteTypes = useMemo(() => ['All Types', 'Lecture Notes', 'PYQ & Solutions', 'Formula Sheet', 'Lab Manual'], []);
 
   // Filter & Sort Logic
   const filteredNotes = useMemo(() => {
-    return MOCK_PUBLIC_NOTES.filter(note => {
+    return notes.filter(note => {
       if (selectedCollege !== 'All Colleges' && note.college !== selectedCollege) return false;
       if (selectedBranch !== 'All Branches' && note.branch !== selectedBranch) return false;
       if (selectedSemester !== 'All Semesters' && note.semester !== selectedSemester) return false;
@@ -56,6 +105,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       return new Date(b.date).getTime() - new Date(a.date).getTime();
     });
   }, [
+    notes,
     selectedCollege,
     selectedBranch,
     selectedSemester,
@@ -195,7 +245,51 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             Public Study Notes{' '}
             <span className="lp-section-header__count">({filteredNotes.length})</span>
           </h2>
+          {loading && (
+            <Loader2
+              size={18}
+              style={{
+                marginLeft: '10px',
+                color: '#F59E0B',
+                animation: 'spin 1s linear infinite'
+              }}
+            />
+          )}
+          <button
+            onClick={fetchPublicNotes}
+            title="Refresh notes from server"
+            style={{
+              marginLeft: 'auto',
+              background: 'transparent',
+              border: 'none',
+              color: '#94a3b8',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '0.82rem'
+            }}
+          >
+            <RefreshCw size={14} />
+            <span>Refresh</span>
+          </button>
         </div>
+
+        {errorMsg && (
+          <div
+            style={{
+              padding: '10px 14px',
+              marginBottom: '16px',
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.25)',
+              borderRadius: '8px',
+              color: '#f87171',
+              fontSize: '0.85rem'
+            }}
+          >
+            {errorMsg}
+          </div>
+        )}
 
         {filteredNotes.length === 0 ? (
           <div className="lp-empty">
